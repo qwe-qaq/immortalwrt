@@ -6,15 +6,15 @@ can inspect the scan results. Keep other survey errors fatal.
 
 --- a/src/ap/acs.c
 +++ b/src/ap/acs.c
-@@ -1367,7 +1367,10 @@ static void acs_scan_complete(struct hostapd_iface *iface)
- 		   iface->conf->acs_num_scans);
- 
- 	err = hostapd_drv_get_survey(iface->bss[0], 0);
+@@ -1462,7 +1462,10 @@ static void acs_scan_complete(struct hostapd_iface *iface)
+ 		eloop_cancel_timeout(acs_scan_wait_timeout, ifaces[i], NULL);
+ 	}
+
 -	if (err) {
 +	if (err == -EOPNOTSUPP) {
 +		wpa_printf(MSG_INFO,
 +			   "ACS: Survey unavailable, using BSS-based fallback");
 +	} else if (err) {
  		wpa_printf(MSG_ERROR, "ACS: Failed to get survey data");
- 		goto fail;
- 	}
+ 		for (i = 0; i < n; i++)
+ 			acs_scan_failed(ifaces[i]);
