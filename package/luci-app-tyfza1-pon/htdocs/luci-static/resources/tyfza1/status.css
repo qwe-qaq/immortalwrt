@@ -1,0 +1,81 @@
+/* Follow Argon's palette; retain fallbacks for the native recovery theme. */
+.tyf-pon {
+	--tyf-accent: var(--primary, #5e72e4);
+	--tyf-border: var(--border-color, #dee2e6);
+	--tyf-muted: var(--muted-text, #626f80);
+	--tyf-surface: var(--surface-color, #fff);
+	--tyf-inset: var(--surface-muted, #f6f9fc);
+	--tyf-text: var(--text-strong, #32325d);
+	color: var(--tyf-text);
+	font-family: inherit;
+	min-width: 0;
+}
+.tyf-pon *, .tyf-pon *::before, .tyf-pon *::after { box-sizing: border-box; }
+.tyf-pon .tyf-page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 8px 0 24px; }
+.tyf-pon .tyf-page-header h2 { margin: 0; padding: 0; border: 0; font-size: 26px; font-weight: 600; letter-spacing: -.025em; }
+.tyf-pon .tyf-eyebrow { color: var(--tyf-accent); font-size: 11px; font-weight: 600; letter-spacing: .14em; margin: 0 0 8px; }
+.tyf-pon .tyf-page-header .tyf-note { max-width: 56em; margin-bottom: 0; }
+.tyf-pon .tyf-refresh-controls, .tyf-pon .tyf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.tyf-pon .tyf-updated { font-size: 12px; color: var(--tyf-muted); font-variant-numeric: tabular-nums; }
+.tyf-pon .tyf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 18px; margin: 18px 0; }
+.tyf-pon .tyf-card, .tyf-pon .tyf-tile, .tyf-pon .tyf-link-panel, .tyf-pon .tyf-fold {
+	min-width: 0; padding: 24px; border: 1px solid var(--tyf-border); border-radius: 12px;
+	background: var(--tyf-surface); box-shadow: 0 3px 12px rgba(20, 32, 60, .035);
+}
+.tyf-pon .tyf-live > div > .tyf-card { margin: 18px 0; }
+.tyf-pon .tyf-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+.tyf-pon .tyf-card-head h3 { margin: 0; padding: 0; border: 0; color: var(--tyf-text); font-size: 16px; font-weight: 600; }
+.tyf-pon .tyf-page-header h2, .tyf-pon .tyf-card-head h3, .tyf-pon .tyf-link-state h3 { background: none; box-shadow: none; border-radius: 0; width: auto; }
+.tyf-pon .tyf-card .tyf-card { background: var(--tyf-inset); border: 0; box-shadow: none; }
+.tyf-pon .tyf-tile { background: linear-gradient(120deg, var(--tyf-surface), var(--tyf-inset)); }
+.tyf-pon .tyf-tile dt { color: var(--tyf-muted); font-size: 12px; font-weight: normal; }
+.tyf-pon .tyf-tile dd { margin: 12px 0 0; font-size: 24px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.tyf-pon .tyf-tile .tyf-note { margin-bottom: 0; }
+.tyf-pon .tyf-link-panel { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr); gap: 24px; border-top: 3px solid var(--tyf-accent); }
+.tyf-pon .tyf-link-state { align-self: center; min-width: 0; }
+.tyf-pon .tyf-link-state h3 { display: flex; align-items: center; gap: 12px; margin: 0; padding: 0; border: 0; font-size: 21px; line-height: 1.5; font-weight: 600; }
+.tyf-pon .tyf-link-facts { border-left: 1px solid var(--tyf-border); padding-left: 24px; }
+.tyf-pon .tyf-link-panel[data-tone="good"] { --tyf-accent: var(--success, #2dce89); }
+.tyf-pon .tyf-link-panel[data-tone="warn"] { --tyf-accent: var(--warning, #fb6340); }
+.tyf-pon .tyf-link-panel[data-tone="danger"] { --tyf-accent: var(--danger, #f5365c); }
+.tyf-pon .tyf-link-panel[data-tone="muted"] { --tyf-accent: var(--tyf-muted); }
+.tyf-pon .tyf-state-dot { flex: 0 0 9px; height: 9px; border-radius: 50%; background: var(--tyf-accent); }
+.tyf-pon .tyf-badge { display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; border-radius: 6px; background: var(--tyf-inset); color: var(--tyf-text); font-size: 12px; line-height: 1.4; }
+.tyf-pon .tyf-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--tyf-muted); }
+.tyf-pon .tyf-good::before { background: var(--success, #2dce89); }
+.tyf-pon .tyf-warn::before { background: var(--warning, #fb6340); }
+.tyf-pon .tyf-danger::before { background: var(--danger, #f5365c); }
+.tyf-pon .tyf-facts { display: grid; grid-template-columns: minmax(100px, 38%) minmax(0, 1fr); gap: 12px 16px; margin: 0; font-size: 13px; }
+.tyf-pon .tyf-facts dt { margin: 0; font-weight: normal; color: var(--tyf-muted); }
+.tyf-pon .tyf-facts dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.tyf-pon .tyf-note { color: var(--tyf-muted); font-size: 12px; line-height: 1.8; margin: 12px 0; overflow-wrap: anywhere; }
+.tyf-pon .tyf-fold { margin: 18px 0; padding: 0; }
+.tyf-pon .tyf-fold summary { cursor: pointer; padding: 18px 24px; font-size: 13px; font-weight: 600; }
+.tyf-pon .tyf-fold > div { padding: 0 24px 20px; }
+.tyf-pon .tyf-fold .tyf-grid { margin-bottom: 0; }
+.tyf-pon .tyf-session + .tyf-session { border-top: 1px solid var(--tyf-border); padding-top: 18px; margin-top: 18px; }
+.tyf-pon .tyf-config { min-width: 0; margin: 24px 0; }
+.tyf-pon .tyf-config .cbi-map { margin: 0; }
+.tyf-pon .tyf-config .cbi-map > h2 { font-size: 19px; }
+.tyf-pon .tyf-config .cbi-section { border-radius: 12px; }
+.tyf-pon .tyf-config .cbi-tabmenu { display: flex; flex-wrap: wrap; }
+.tyf-pon .tyf-config input, .tyf-pon .tyf-config select { max-width: 100%; }
+.tyf-pon .tyf-config .cbi-value-field { min-width: 0; }
+.tyf-pon .tyf-link { display: inline-block; margin: 8px 0; white-space: normal; text-align: center; }
+.tyf-pon pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.8; color: var(--tyf-text); background: var(--tyf-inset); border: 0; border-radius: 8px; padding: 18px; }
+.tyf-pon .tyf-raw { max-height: 65vh; overflow: auto; }
+.tyf-pon a:focus-visible, .tyf-pon button:focus-visible, .tyf-pon summary:focus-visible { outline: 2px solid var(--tyf-accent); outline-offset: 3px; }
+@media (max-width: 720px) {
+	.tyf-pon .tyf-link-panel { grid-template-columns: minmax(0, 1fr); }
+	.tyf-pon .tyf-link-facts { border-left: 0; border-top: 1px solid var(--tyf-border); padding: 20px 0 0; }
+	.tyf-pon .tyf-page-header h2 { font-size: 23px; }
+	.tyf-pon .tyf-refresh-controls { width: 100%; justify-content: space-between; }
+	.tyf-pon .tyf-card, .tyf-pon .tyf-tile, .tyf-pon .tyf-link-panel { padding: 18px; }
+	.tyf-pon .tyf-link-state h3 { font-size: 19px; }
+	.tyf-pon .tyf-fold summary { padding: 16px 18px; }
+	.tyf-pon .tyf-fold > div { padding: 0 18px 18px; }
+	.tyf-pon .cbi-button { min-height: 42px; }
+	.tyf-pon .tyf-facts { grid-template-columns: minmax(90px, 36%) minmax(0, 1fr); gap: 10px; }
+	.tyf-pon .tyf-config .cbi-value-title { float: none; width: auto; text-align: left; }
+	.tyf-pon .tyf-config .cbi-value-field { margin-left: 0; }
+}

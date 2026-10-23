@@ -1,0 +1,4 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Preserve custom bridge membership while migrating legacy device references.
+/usr/bin/ucode /usr/share/tyfza1/rename-netdevs.uc

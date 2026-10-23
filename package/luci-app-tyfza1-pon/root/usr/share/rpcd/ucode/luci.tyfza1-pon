@@ -1,0 +1,125 @@
+#!/usr/bin/env ucode
+// SPDX-License-Identifier: GPL-2.0-or-later
+'use strict';
+import { readfile } from 'fs';
+
+function read_value(path) {
+	let text = readfile(path);
+	return text == null ? null : trim(text);
+}
+
+function network_ports() {
+	let ports = [];
+	for (let name in ['lan1', 'lan2', 'lan3', 'lan4', 'pon0']) {
+		let path = '/sys/class/net/' + name + '/';
+		let port = { device: name, present: read_value(path + 'ifindex') != null };
+		for (let key in ['carrier', 'operstate', 'speed', 'duplex', 'address', 'mtu'])
+			port[key] = read_value(path + key);
+		port.statistics = {};
+		for (let key in ['rx_bytes', 'tx_bytes', 'rx_packets', 'tx_packets',
+			'rx_errors', 'tx_errors', 'rx_dropped', 'tx_dropped'])
+			port.statistics[key] = read_value(path + 'statistics/' + key);
+		push(ports, port);
+	}
+	return ports;
+}
+
+function fields(text) {
+	if (text == null)
+		return null;
+	let result = {};
+	for (let token in split(trim(text), /\s+/)) {
+		let position = index(token, '=');
+		if (position > 0)
+			result[substr(token, 0, position)] = substr(token, position + 1);
+	}
+	return result;
+}
+
+function status_live(status, now_ms) {
+	if (type(status.pid) != 'int' || status.pid <= 0 || type(status.updated_ms) != 'int')
+		return false;
+	// /proc/uptime is truncated to centiseconds; compare at the same resolution.
+	let updated_ms = status.updated_ms - status.updated_ms % 10;
+	let process = readfile('/proc/' + status.pid + '/stat');
+	let end = process != null ? index(process, ') ') : -1;
+	let state = end >= 0 ? split(substr(process, end + 2), ' ') : [];
+	return length(state) > 19 && state[0] != 'Z' && state[0] != 'X' &&
+		state[19] == status.process_start && now_ms >= updated_ms && now_ms - updated_ms < 5000;
+}
+
+function omci_status(now_ms) {
+	let status = fields(readfile('/var/run/pon-omci'));
+	if (status == null)
+		return null;
+	status.pid = +status.pid;
+	status.updated_ms = +status.updated_ms;
+	status.live = status_live(status, now_ms);
+	return status;
+}
+
+function oam_ports(now_ms) {
+	let ports = [];
+	for (let llid = 0; llid < 32; llid++) {
+		let text = readfile('/var/run/pon-oam/llid-' + llid + '.json');
+		if (text == null)
+			continue;
+		let status;
+		try { status = json(text); }
+		catch (e) { continue; }
+		if (type(status) != 'object' || type(status.pid) != 'int' || status.pid <= 0)
+			continue;
+		status.llid_index = llid;
+		status.live = status_live(status, now_ms);
+		if (!status.live) {
+			status.registered = false;
+			status.auth_state = null;
+			status.discovery_stable = false;
+		}
+		push(ports, status);
+	}
+	return ports;
+}
+
+const methods = {
+	status: {
+		call: function() {
+			const device = '/sys/bus/platform/devices/4f5500000.pon/';
+			const now_ms = +split(trim(readfile('/proc/uptime')), ' ')[0] * 1000;
+			const data_path = readfile(device + 'data_path');
+			return {
+				identity: {
+					onu_mac: read_value(device + 'onu_mac'),
+					serial_number: read_value(device + 'active_serial_number')
+				},
+				service: fields(readfile('/var/run/pon-service')),
+				activation: fields(readfile(device + 'activation')),
+				data_path: fields(data_path == null ? null : split(data_path, '\n')[0]),
+				data_path_raw: data_path,
+				omci: omci_status(now_ms),
+				state: fields(readfile(device + 'state')),
+				serdes: fields(readfile(device + 'serdes')),
+				bosa: fields(readfile(device + 'bosa')),
+				mac: fields(readfile(device + 'mac')),
+				mpcp: fields(readfile(device + 'mpcp')),
+				traffic: fields(readfile(device + 'traffic')),
+				fe: fields(readfile(device + 'fe')),
+				optical: fields(readfile(device + 'optical')),
+				fec: fields(readfile(device + 'fec')),
+				puc: readfile(device + 'puc'),
+				pdc: readfile(device + 'pdc'),
+				llids: readfile(device + 'llid_table'),
+				deepq: fields(readfile('/sys/bus/platform/devices/4f4300000.ethernet/pon_deepq')),
+				wan_rx_packets: trim(readfile('/sys/class/net/pon0/statistics/rx_packets')),
+				wan_tx_packets: trim(readfile('/sys/class/net/pon0/statistics/tx_packets')),
+				lan_rx_errors: trim(readfile('/sys/class/net/lan1/statistics/rx_errors')),
+				lan_rx_dropped: trim(readfile('/sys/class/net/lan1/statistics/rx_dropped')),
+				oam_ports: oam_ports(now_ms),
+				ports: network_ports(),
+				queried_at: time()
+			};
+		}
+	}
+};
+
+return { 'luci.tyfza1-pon': methods };

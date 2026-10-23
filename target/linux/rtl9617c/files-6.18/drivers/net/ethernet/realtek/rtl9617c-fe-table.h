@@ -1,0 +1,166 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+#ifndef RTL9617C_FE_TABLE_H
+#define RTL9617C_FE_TABLE_H
+#include "rtl9617c-fe-format.h"
+#include "rtl9617c-qm-deepq.h"
+
+/* A 224-bit mask occupies two 128-bit hardware banks. Addr bit6 selects
+ * the upper bank; DATA0..3 are arranged in reverse register-address order.
+ * The owner serializes these transactions with the FE table mutex. */
+static inline int rtl_fe_mask_write(const struct rtl_dq_io *io, unsigned int index,
+ const unsigned int words[RTL_FE_MASK_WORDS])
+{
+ unsigned int bank, word;
+ int ret;
+
+ for (bank = 0; bank < 2; bank++) {
+  for (word = 0; word < 4; word++)
+   io->write(io->context, 0x3920 - word * 4, words[bank * 4 + word]);
+  ret = io->indirect(io->context, 0x3910, 0xc0000000U | (bank << 6) | index);
+  if (ret)
+   return ret;
+ }
+ return 0;
+}
+static inline int rtl_fe_mask_read(const struct rtl_dq_io *io, unsigned int index,
+ unsigned int words[RTL_FE_MASK_WORDS])
+{
+ unsigned int bank, word;
+ int ret;
+
+ for (bank = 0; bank < 2; bank++) {
+  ret = io->indirect(io->context, 0x3910, 0x80000000U | (bank << 6) | index);
+  if (ret)
+   return ret;
+  for (word = 0; word < 4; word++)
+   words[bank * 4 + word] = io->read(io->context, 0x3920 - word * 4);
+ }
+ return 0;
+}
+
+/* TYFZA1 SWO reads its mask from profile0/tuple0; word32 only reads back the
+ * supplied pointer. Select the requested mask for the transaction and restore
+ * it before returning. The owner serializes SWO with profile/table updates.
+ * SWO completion uses bit0, while ordinary accesses complete on bit31. */
+static inline int rtl_fe_crc_hardware(const struct rtl_dq_io *io,
+ const unsigned int header[RTL_FE_HEADER_WORDS], unsigned int mask,
+ unsigned int *crc32, unsigned short *crc16)
+{
+ unsigned int i, tuple=io->read(io->context,0x3704);
+ int ret;
+
+ io->write(io->context, 0x38d8, 0);
+ for (i = 0; i < RTL_FE_HEADER_WORDS; i++)
+  io->write(io->context, 0x38dc, header[i]);
+ io->write(io->context, 0x38dc, mask);
+ io->write(io->context,0x3704,(tuple&~63U)|(mask&63U));
+ ret = io->indirect(io->context, 0x38e0, 1);
+ io->write(io->context,0x3704,tuple);
+ if (ret)
+  return ret;
+ io->write(io->context, 0x38d8, 33);
+ *crc32 = io->read(io->context, 0x38dc);
+ *crc16 = io->read(io->context, 0x38dc) & 0xffff;
+ return 0;
+}
+
+#define RTL_FE_HASH_ENTRIES 65536
+#define RTL_FE_CACHE_ENTRIES 2048
+#define RTL_FE_ACTION_BYTES 48
+#define RTL_FE_HASH_BYTES (RTL_FE_HASH_ENTRIES * 4)
+#define RTL_FE_ACTION_OFFSET RTL_FE_HASH_BYTES
+#define RTL_FE_OVERFLOW_OFFSET (RTL_FE_ACTION_OFFSET + RTL_FE_HASH_ENTRIES * RTL_FE_ACTION_BYTES)
+#define RTL_FE_DEFAULT_OFFSET (RTL_FE_OVERFLOW_OFFSET + 64 * RTL_FE_ACTION_BYTES)
+#define RTL_FE_MEMORY_BYTES ((RTL_FE_DEFAULT_OFFSET + 32 * 16 + 4095) & ~4095U)
+
+/* Original board defaults:64K main entries,32-entry buckets,384-bit slots.
+ * The224-bit normal action fits its48-byte slot;defaults use128-bit slots.
+ * Cache has2048 entries and its own internal224-bit action SRAM.
+ * The DMA provider supplies the board's coherent CCI address alias. */
+static inline void rtl_fe_dma_tables(const struct rtl_dq_io *io,
+ unsigned int address, unsigned int address_high)
+{
+ io->write(io->context, 0x38c4, 0);
+ io->write(io->context, 0x3838, address_high);
+ io->write(io->context, 0x383c, address);
+ io->write(io->context, 0x3840, address_high);
+ io->write(io->context, 0x3844, address + RTL_FE_ACTION_OFFSET);
+ io->write(io->context, 0x384c, address_high);
+ io->write(io->context, 0x3850, address + RTL_FE_OVERFLOW_OFFSET);
+ io->write(io->context, 0x3858, address_high);
+ io->write(io->context, 0x385c, address + RTL_FE_DEFAULT_OFFSET);
+ io->write(io->context, 0x3834,
+  (io->read(io->context, 0x3834) & ~0x300ffU) | 3 | (7 << 2) | (4 << 5));
+ io->write(io->context, 0x3848, 4);
+ io->write(io->context, 0x3854, 1);
+ io->write(io->context, 0x38a0, (1 << 18) | (1 << 16) | (3 << 8) | 4);
+}
+/* Stock Hash AXI errata and cache initialization precede LAN admission.
+ * aal_hash_hw_patch_set enables the stage1 request and ID1 limit controls
+ * to avoid AXI deadlock; bit31 also enables its CRC offload correction.
+ * Stock read/write outstanding limits are both15; keep other AXIM2 bits. */
+static inline void rtl_fe_cache_start(const struct rtl_dq_io *io)
+{
+ io->write(io->context,0x3944,io->read(io->context,0x3944)|0x80000001U);
+ io->write(io->context,0x3948,io->read(io->context,0x3948)|1U);
+ io->write(io->context,0x3c80,io->read(io->context,0x3c80)|255U);
+ /* A template mismatch must return to Linux without applying the hit action. */
+ io->write(io->context,0x3940,(io->read(io->context,0x3940)&~0xffffU)|0xd0d0);
+ io->write(io->context,0x3924,0);
+ io->write(io->context,0x38b8,0xffffffffU);
+ io->write(io->context,0x38bc,0xffffffffU);
+ io->write(io->context,0x38c4,0xa0000000U);
+}
+static inline unsigned int rtl_fe_hash_bucket(unsigned short crc16)
+{
+ /* GPL crc16_mask[32-entry bucket][64K table] is0xffe0. */
+ return crc16&0xffe0U;
+}
+
+/* Original group16+18+19 trap preserves bytes and the CLS CPU destination. */
+static inline void rtl_fe_cpu_miss(unsigned int words[4])
+{
+ unsigned int i;
+ for (i = 0; i < 4; i++)
+  words[i] = 0;
+ rtl_fe_bits_set(words, 41 + 13, 1, 1); /* keep_orig_pkt_vld */
+ rtl_fe_bits_set(words, 41 + 14, 1, 1); /* keep_orig_pkt */
+}
+
+/* Each age row owns32 slots, each four bits. Main indices are linear
+ * bucket/slot values; keep the other31 slots when installing/removing a flow. */
+static inline int rtl_fe_main_age(const struct rtl_dq_io *io,unsigned int index,unsigned int age)
+{
+ unsigned int row=index>>5,slot=index&31,reg=0x3938-(slot>>3)*4,value;
+ int ret=io->indirect(io->context,0x3928,0x80000000U|row);
+ if(ret)return ret;
+ value=io->read(io->context,reg);
+ value=(value&~(15U<<((slot&7)*4)))|((age&15)<<((slot&7)*4));
+ io->write(io->context,reg,value);
+ return io->indirect(io->context,0x3928,0xc0000000U|row);
+}
+static inline int rtl_fe_main_age_read(const struct rtl_dq_io *io,
+ unsigned int index,unsigned int *age)
+{
+ unsigned int slot=index&31;
+ int ret=io->indirect(io->context,0x3928,0x80000000U|(index>>5));
+
+ if(ret)return ret;
+ *age=(io->read(io->context,0x3938-(slot>>3)*4)>>((slot&7)*4))&15;
+ return 0;
+}
+static inline int rtl_fe_cache_command(const struct rtl_dq_io *io,unsigned int index,
+ unsigned short crc16,unsigned int command)
+{
+ io->write(io->context,0x38ac,(index&31)|((unsigned int)crc16<<5)|(3U<<26)|(command<<30));
+ return io->indirect(io->context,0x38b0,1);
+}
+static inline int rtl_fe_cache_read(const struct rtl_dq_io *io,unsigned int index,int fib,unsigned int words[7])
+{
+ unsigned int i;
+ int ret=io->indirect(io->context,0x38e4,0x80000000U|index|(fib?1U<<11:0));
+ if(ret)return ret;
+ for(i=0;i<7;i++)words[i]=io->read(io->context,0x3900-i*4);
+ return 0;
+}
+#endif

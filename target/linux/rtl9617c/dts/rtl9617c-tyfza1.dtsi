@@ -1,0 +1,386 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Common Tianyi TYFZA1 board support, consolidated from the native bring-up
+// chain (serial, NAND, stock-UBI layout, XRAM LAN, DMA TX, NI/LEDs, PON,
+// PCIe, USB). Register ranges, GPIO wiring and reservations verified against
+// TYFZA1's stock DTB SHA256 5124f860df3bcd2e20b87d058e19b1ddfdc7a46c9d876663
+// ba9feeff5a0f13ac; the four-GbE LED wiring comes from stock conf-1/fdt@1.
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include "rtl9617c.dtsi"
+
+/ {
+	aliases {
+		serial0 = &uart0;
+		led-boot = &led_power;
+		led-failsafe = &led_power;
+		led-running = &led_power;
+		led-upgrade = &led_power;
+		led-wps = &led_wps;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs = "earlycon console=ttyS0,115200n8 loglevel=7 clk_ignore_unused maxcpus=4";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0 0 0 0x20000000>;
+	};
+
+	// Keep every stock reservation until live firmware/BL31 evidence proves
+	// it can be released. No VoIP driver is enabled.
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+		voip-vector@0 {
+			reg = <0 0 0 0x1000>;
+			no-map;
+		};
+		voip@2000000 {
+			reg = <0 0x02000000 0 0x00300000>;
+			no-map;
+		};
+		voip-ipc@2300000 {
+			reg = <0 0x02300000 0 0x00100000>;
+			no-map;
+		};
+		ddr-noncache@9000000 {
+			reg = <0 0x09000000 0 0x01a50000>;
+		};
+		ddr-cache@bc48000 {
+			reg = <0 0x0bc48000 0 0x10000>;
+		};
+		tz-smc@eeff000 {
+			reg = <0 0x0eeff000 0 0x1000>;
+			no-map;
+		};
+		tz@ffc0000 {
+			reg = <0 0x0ffc0000 0 0x40000>;
+		};
+	};
+
+	leds {
+		compatible = "tianyi,tyfza1-leds";
+		internet { label = "LED_PPP_G"; gpios = <&gpio0 2 GPIO_ACTIVE_LOW>; };
+		los { label = "LED_LOS"; gpios = <&gpio0 10 GPIO_ACTIVE_LOW>; };
+		usb0 { label = "LED_USB0"; gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>; };
+		pon { label = "LED_PON"; gpios = <&gpio0 9 GPIO_ACTIVE_LOW>; };
+		led_power: power { label = "LED_PWR_G"; gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>; default-state = "on"; };
+		phone { label = "LED_FXS"; gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>; };
+		lan0 { label = "LED_EPHY0"; gpios = <&gpio0 4 GPIO_ACTIVE_LOW>; };
+		lan1 { label = "LED_EPHY1"; gpios = <&gpio0 3 GPIO_ACTIVE_LOW>; };
+		lan2 { label = "LED_EPHY2"; gpios = <&gpio0 1 GPIO_ACTIVE_LOW>; };
+		lan3 { label = "LED_EPHY3"; gpios = <&gpio0 0 GPIO_ACTIVE_LOW>; };
+		usb1 { label = "LED_USB1"; gpios = <&gpio0 6 GPIO_ACTIVE_LOW>; };
+		led_wps: wps { label = "LED_WPS_G"; gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>; };
+	};
+
+	led-button {
+		compatible = "gpio-keys-polled";
+		poll-interval = <20>;
+		lights-toggle {
+			label = "lights_toggle";
+			linux,code = <KEY_LIGHTS_TOGGLE>;
+			gpios = <&gpio0 67 GPIO_ACTIVE_LOW>;
+			debounce-interval = <60>;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+// Values and wiring from the identified TYFZA1 DTB, not another Taurus board.
+&watchdog {
+	reset-on-timeout;
+	delay-reset = <134>;
+	status = "okay";
+};
+
+// Layout from the CRC-verified TYFZA1 environment and zero-entry factory
+// BBLs. The writable UBI partition set replaces the stock read-only policy
+// so the storage migration can reclaim the OEM volumes.
+&qspi {
+	status = "okay";
+	flash@0 {
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <1>;
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			partition@0 {
+				label = "boot";
+				reg = <0x0 0x200000>;
+			};
+			partition@280000 {
+				label = "env";
+				reg = <0x280000 0x40000>;
+			};
+			partition@2c0000 {
+				label = "env2";
+				reg = <0x2c0000 0x40000>;
+			};
+			partition@300000 {
+				label = "static_conf";
+				reg = <0x300000 0x40000>;
+				read-only;
+			};
+			partition@340000 {
+				label = "ubi_device";
+				reg = <0x340000 0xf5c0000>;
+			};
+		};
+	};
+};
+
+&mdio {
+	status = "okay";
+	phy0: ethernet-phy@1 { reg = <1>; };
+	phy1: ethernet-phy@2 { reg = <2>; };
+	phy2: ethernet-phy@3 { reg = <3>; };
+	phy3: ethernet-phy@4 { reg = <4>; };
+};
+
+&i2c0 {
+	status = "okay";
+	bosa0: optical-front-end@51 {
+		compatible = "realtek,rtl9617c-bosa";
+		reg = <0x51>;
+	};
+};
+
+&{/soc} {
+	ni0: ethernet@4f4300000 {
+		compatible = "realtek,rtl9617c-xram-eth";
+		reg = <4 0xf4300000 0 0x10000>, <0 0xf4500000 0 0x2000>,
+		      <4 0xf7001000 0 0x1000>, <4 0xf432d000 0 0x1000>,
+		      <4 0xf4320098 0 4>, <4 0xf432f000 0 0x1000>;
+		reg-names = "ni", "xram", "dma-lso", "qm-axi-reorder", "block-reset",
+			    "l3fe-axi-reorder";
+		realtek,port = <0>;
+		phy-handle = <&phy0>;
+		realtek,dma-tx;
+		realtek,qm-rx;
+		realtek,lan-phys = <&phy0 &phy1 &phy2 &phy3>;
+		interrupts = <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
+	gpio0: gpio@4f43292c0 {
+		compatible = "realtek,rtl9617c-gpio";
+		reg = <4 0xf43292c0 0 0xb4>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-ranges = <&pinctrl 0 0 160>;
+	};
+
+	ne_irq: interrupt-controller@f4320164 {
+		compatible = "realtek,rtl9617c-per-ictl", "cortina,per-ictl";
+		reg = <0 0xf4320164 0 0x10>;
+		interrupt-controller;
+		#interrupt-cells = <1>;
+		#address-cells = <0>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
+	pon@4f5500000 {
+		compatible = "realtek,rtl9617c-pon";
+		realtek,network-engine = <&ni0>;
+		realtek,optical-front-end = <&bosa0>;
+		tx-disable-gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+		reg = <4 0xf5500000 0 0xc000>, <4 0xf4320094 0 4>,
+		      <4 0xf4320074 0 4>, <4 0xf432022c 0 4>,
+		      <4 0xf4320080 0 8>, <4 0xf4320090 0 4>, <4 0xf4320180 0 8>, <4 0xf432007c 0 4>,
+		      <4 0xf4329440 0 0x10>;
+		reg-names = "mac", "control", "epon-control", "serdes-init", "optical-control", "optical-status", "top-irq", "gpon-control", "dying-gasp";
+		interrupts-extended = <&ne_irq 5>, <&per_ictl 24>;
+		interrupt-names = "pon", "dying-gasp";
+		realtek,burst-polarity = <0>;
+		realtek,los-invert = <0>;
+	};
+
+	pcie_controls: pcie-controls@f4320098 {
+		compatible = "realtek,rtl9617c-pcie-controls";
+		reg = <0 0xf4320098 0 4>, <0 0xf43200a0 0 4>,
+		      <0 0xf43200c4 0 0x14>, <0 0xf432036c 0 4>, <0 0xf432009c 0 4>,
+		      <4 0xf433b000 0 0x1000>, <0 0xf4600000 0 0x1000>;
+		reg-names = "core-reset", "phy-reset", "phy-control", "power", "usb-reset",
+			    "sgmii-analog", "sgmii-serdes";
+		realtek,global-config = <&global_config>;
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+		#phy-cells = <1>;
+	};
+
+	pcie0: pcie@f4325000 {
+		compatible = "realtek,rtl9617c-pcie";
+		reg = <0 0xf4325000 0 0x400>,
+		      <0 0xa0000000 0 0x1000>,
+		      <0 0xa0001000 0 0x2000>,
+		      <0 0xa0300000 0 0x100000>,
+		      <0 0xf4333000 0 0x2000>,
+		      <0x0 0xf432c000 0x0 0x1c>;
+		reg-names = "global", "dbi", "config", "atu", "serdes", "coherent-atu";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		bus-range = <0 255>;
+		linux,pci-domain = <0>;
+		ranges = <0x81000000 0x0 0x0 0x0 0xa0003000 0x0 0x10000 0x82000000 0x0 0xa0400000 0x0 0xa0400000 0x0 0xfc00000>;
+		dma-ranges = <0x02000000 0 0 0 0 0 0x20000000>;
+		dma-coherent;
+		interrupts = <0 42 4>;
+		interrupt-names = "wrapper";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 7>;
+		interrupt-map = <0 0 0 1 &pcie0_intc 0>,
+				<0 0 0 2 &pcie0_intc 1>,
+				<0 0 0 3 &pcie0_intc 2>,
+				<0 0 0 4 &pcie0_intc 3>;
+		clocks = <&pcie_controls 0>;
+		resets = <&pcie_controls 0>, <&pcie_controls 2>;
+		reset-names = "core", "phy";
+		phys = <&pcie_controls 0>;
+		phy-names = "pcie";
+		reset-gpios = <&gpio0 101 GPIO_ACTIVE_LOW>; // stock bank3,pin5
+		reset-delay-ms = <150>;
+		num-lanes = <1>;
+		realtek,controller-index = <0>;
+		realtek,ddr-bytes = <0x20000000>;
+		realtek,coherent-hi-addr = <4>;
+		// Taurus GPL uses the B/default branch; verify cut on first board bring-up.
+		realtek,serdes-profile = "B";
+		serdes-cfg-dataA = <
+			0x4 0xa855 0x18 0xa 0x20 0x3591 0x28 0x8670
+			0x2c 0xb90d 0x34 0xf71a 0x38 0x1000 0x74 0xda1f
+			0x80 0xd477 0x88 0x23 0x8c 0xb66 0x90 0x4f30
+			0xa0 0xf802 0xc0 0x55 0x24 0x500c 0x24 0x520c
+			0x104 0xa84a 0x118 0xa 0x120 0x3591 0x128 0x8650
+			0x12c 0xb90d 0x134 0xf71a 0x138 0x1000 0x174 0xda1f
+			0x180 0xd477 0x184 0x55aa 0x188 0x23 0x18c 0xb66
+			0x1a0 0xf802 0x1bc 0x3900 0x1c0 0x4a 0x124 0x500c
+			0x124 0x520c
+		>;
+		serdes-cfg-dataB = <
+			0x4 0xa855 0x8 0x60c6 0x18 0x1f 0x20 0x3591
+			0x28 0xf670 0x2c 0xa90d 0x34 0xf71a 0x38 0x1000
+			0x74 0xda1f 0x80 0xd477 0x88 0x23 0x8c 0xb66
+			0x90 0x4f30 0xa0 0xf802 0xc0 0x55 0xc8 0xf0f3
+			0x24 0x500c 0x24 0x520c 0x104 0xa84a 0x108 0x60c6
+			0x118 0x1f 0x120 0x3591 0x128 0xf670 0x12c 0xa90d
+			0x134 0xf71a 0x138 0x1000 0x174 0xda1f 0x180 0xd479
+			0x184 0x55aa 0x188 0x23 0x18c 0xb66 0x190 0x4f0c
+			0x1a0 0xf802 0x1bc 0x3900 0x1c0 0x4a 0x1c8 0xf0f3
+			0x124 0x500c 0x124 0x520c
+		>;
+		pcie0_intc: interrupt-controller {
+			interrupt-controller;
+			#address-cells = <0>;
+			#interrupt-cells = <1>;
+		};
+	};
+
+	pcie1: pcie@f4326000 {
+		compatible = "realtek,rtl9617c-pcie";
+		reg = <0 0xf4326000 0 0x400>,
+		      <0 0xb0000000 0 0x1000>,
+		      <0 0xb0001000 0 0x2000>,
+		      <0 0xb0300000 0 0x100000>,
+		      <0 0xf4335000 0 0x2000>,
+		      <0x0 0xf432c100 0x0 0x1c>;
+		reg-names = "global", "dbi", "config", "atu", "serdes", "coherent-atu";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		bus-range = <0 255>;
+		linux,pci-domain = <1>;
+		ranges = <0x81000000 0x0 0x0 0x0 0xb0003000 0x0 0x10000 0x82000000 0x0 0xb0400000 0x0 0xb0400000 0x0 0xfc00000>;
+		dma-ranges = <0x02000000 0 0 0 0 0 0x20000000>;
+		dma-coherent;
+		interrupts = <0 46 4>;
+		interrupt-names = "wrapper";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 7>;
+		interrupt-map = <0 0 0 1 &pcie1_intc 0>,
+				<0 0 0 2 &pcie1_intc 1>,
+				<0 0 0 3 &pcie1_intc 2>,
+				<0 0 0 4 &pcie1_intc 3>;
+		clocks = <&pcie_controls 1>;
+		resets = <&pcie_controls 1>, <&pcie_controls 3>;
+		reset-names = "core", "phy";
+		phys = <&pcie_controls 2>;
+		phy-names = "pcie";
+		reset-gpios = <&gpio0 102 GPIO_ACTIVE_LOW>; // stock bank3,pin6
+		reset-delay-ms = <50>;
+		num-lanes = <1>;
+		realtek,controller-index = <1>;
+		realtek,ddr-bytes = <0x20000000>;
+		realtek,coherent-hi-addr = <4>;
+		// Taurus GPL uses the B/default branch; verify cut on first board bring-up.
+		realtek,serdes-profile = "B";
+		serdes-cfg-dataA = <
+			0x4 0xa855 0x18 0xa 0x20 0x3591 0x28 0x8670
+			0x2c 0xb90d 0x34 0xf71a 0x38 0x1000 0x74 0xda1f
+			0x80 0xd477 0x88 0x23 0x8c 0xb66 0x90 0x4f30
+			0xa0 0xf802 0xc0 0x55 0x24 0x500c 0x24 0x520c
+			0x104 0xa84a 0x118 0xa 0x120 0x3591 0x128 0x8650
+			0x12c 0xb90d 0x134 0xf71a 0x138 0x1000 0x174 0xda1f
+			0x180 0xd477 0x184 0x55aa 0x188 0x23 0x18c 0xb66
+			0x1a0 0xf802 0x1bc 0x3900 0x1c0 0x4a 0x124 0x500c
+			0x124 0x520c
+		>;
+		serdes-cfg-dataB = <
+			0x4 0xa855 0x8 0x60c6 0x18 0x1f 0x20 0x3591
+			0x28 0xf670 0x2c 0xa90d 0x34 0xf71a 0x38 0x1000
+			0x74 0xda1f 0x80 0xd477 0x88 0x23 0x8c 0xb66
+			0x90 0x4f30 0xa0 0xf802 0xc0 0x55 0xc8 0xf0f3
+			0x24 0x500c 0x24 0x520c 0x104 0xa84a 0x108 0x60c6
+			0x118 0x1f 0x120 0x3591 0x128 0xf670 0x12c 0xa90d
+			0x134 0xf71a 0x138 0x1000 0x174 0xda1f 0x180 0xd479
+			0x184 0x55aa 0x188 0x23 0x18c 0xb66 0x190 0x4f0c
+			0x1a0 0xf802 0x1bc 0x3900 0x1c0 0x4a 0x1c8 0xf0f3
+			0x124 0x500c 0x124 0x520c
+		>;
+		pcie1_intc: interrupt-controller {
+			interrupt-controller;
+			#address-cells = <0>;
+			#interrupt-cells = <1>;
+		};
+	};
+
+	// USB wiring and calibration from TYFZA1 stock conf-1/fdt@1.
+	usbphy: usb-phy@f432b020 {
+		compatible = "realtek,rtl9617c-usb-phy";
+		reg = <0 0xf432b020 0 0x18>, <0 0xf432b000 0 0x20>,
+		      <0 0xf432b04c 0 0x10>, <0 0xf4337000 0 0x1000>,
+		      <0 0xf432c500 0 0x1c>;
+		reg-names = "usb2", "usb3", "extension", "serdes", "atu";
+		#phy-cells = <0>;
+		phys = <&pcie_controls 4>;
+		phy-names = "lane";
+		resets = <&pcie_controls 4>, <&pcie_controls 5>;
+		reset-names = "core", "port1";
+		vbus-gpios = <&gpio0 100 GPIO_ACTIVE_HIGH>;
+		realtek,usb2-addresses = [e0 e2 e4 e7 f4 e7 f4 e0 e0 e0];
+		realtek,usb2-values-a = [1f f9 68 71 db 44 bb 25 21 25];
+		realtek,usb3-addresses-a = [01 04 05 08 09 0a 0b 0d 0e 20 21 22 23 27 2b 33];
+		realtek,usb3-values-a = /bits/ 16 <0xaccc 0x7000 0x6313 0x30d1 0x424c 0xa610 0xb905 0xef2e 0x1000 0x705e 0xf8e8 0x0003 0x0b66 0x0241 0x0038 0x0001>;
+		realtek,usb2-values-b = [1f f9 6b 71 db 43 bb 26 22 26];
+		realtek,usb3-addresses-b = [01 04 05 08 09 0a 0b 0d 0e 20 21 22 23 27 2b 33 09 09 09];
+		realtek,usb3-values-b = /bits/ 16 <0xaccc 0x7000 0x6313 0x30d1 0x424c 0xc610 0xa905 0xef2e 0x1000 0x705e 0xf8e8 0x0003 0x0b66 0x0241 0x0038 0x0001 0x424c 0x404c 0x424c>;
+	};
+
+	usb: usb@f0200000 {
+		compatible = "generic-xhci";
+		reg = <0 0xf0200000 0 0x80000>;
+		interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>;
+		phys = <&usbphy>;
+		phy-names = "usb";
+	};
+};

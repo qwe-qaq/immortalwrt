@@ -1,0 +1,24 @@
+--- a/drivers/net/phy/realtek/realtek_main.c
++++ b/drivers/net/phy/realtek/realtek_main.c
+@@ -3811,7 +3811,21 @@
+ 	return 0;
+ }
+ 
++#include "rtl8221b-tyfza1.h"
++
+ static struct phy_driver realtek_drvs[] = {
++	{
++		.match_phy_device = rtl8221b_tyfza1_match,
++		.name		= "TYFZA1 RTL8221B HiSGMII PHY",
++		.get_features	= rtl8221b_tyfza1_get_features,
++		.config_init	= rtl8221b_tyfza1_config_init,
++		.config_aneg	= rtl822x_c45_config_aneg,
++		.read_status	= rtl822x_c45_read_status,
++		.suspend	= genphy_c45_pma_suspend,
++		.resume		= rtlgen_c45_resume,
++		.read_mmd	= rtl822xb_read_mmd,
++		.write_mmd	= rtl822xb_write_mmd,
++	},
+ 	{
+ 		PHY_ID_MATCH_EXACT(0x00008201),
+ 		.name		= "RTL8201CP Ethernet",

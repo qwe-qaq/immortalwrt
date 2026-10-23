@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config RTL_AX_AP
+	tristate "TYFZA1 RTL8852C/RTL8192XB native AP backend"
+	depends on PCI && ARCH_RTL9617C && MAC80211 && RTL9617C_XRAM_ETH
+	select FW_LOADER
+	select LEDS_TYFZA1
+	select MAC80211_LEDS
+	help
+	  Native PCI endpoint identity, AP power, calibration and channel12 WCPU
+	  firmware download for both TYFZA1 radios. Native mac80211 monitor RX
+	  is provided for RTL8852C 5GHz and RTL8192XB 2.4GHz at 20MHz.
+	  AP transmission, association and the remaining RF controls are in progress.

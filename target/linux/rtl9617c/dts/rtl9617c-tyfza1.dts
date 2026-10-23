@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Tianyi TYFZA1, four internal GbE PHYs on NI ports 0-3 (stock conf-1/fdt@1).
+/dts-v1/;
+#include "rtl9617c-tyfza1.dtsi"
+
+/ {
+	model = "Tianyi TYFZA1";
+	compatible = "tianyi,tyfza1", "realtek,rtl9617c";
+};

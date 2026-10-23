@@ -444,7 +444,7 @@ export function info(name) {
 			htmode: data.radio?.htmode,
 			center_freq1: format_channel(data.center_freq1) || 'unknown',
 			center_freq2: format_channel(data.center_freq2) || 'unknown',
-			txpower: data.wiphy_tx_power_level / 100,
+			txpower: data.wiphy_tx_power_level == null ? null : data.wiphy_tx_power_level / 100,
 			noise: data.noise,
 			signal: 0,
 			bitrate: 0,
