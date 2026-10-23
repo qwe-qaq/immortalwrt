@@ -1,0 +1,152 @@
+name: Build TYFZA1 firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_runtime_firmware:
+        description: 'Bundle stock radio/PON firmware blobs (downloads the public upstream release asset)'
+        type: boolean
+        default: true
+      release_tag:
+        description: 'Optional release tag to publish the firmware to (e.g. v0.8.2-beta); empty = artifacts only'
+        required: false
+        default: ''
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tyfza1-firmware-${{ inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang-18 llvm-18 lld-18 flex bison gawk \
+            gettext git libncurses-dev libssl-dev python3 python3-setuptools python3-pyelftools \
+            python3-dev rsync unzip zlib1g-dev file wget curl device-tree-compiler u-boot-tools \
+            swig libelf-dev libfuse-dev pkgconf xz-utils ca-certificates
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+
+      - name: Prepare OMCI Rust toolchain
+        run: |
+          rustup toolchain install 1.96.1 --profile minimal
+          rustup target add --toolchain 1.96.1 aarch64-unknown-linux-musl
+          echo "TYFZA1_CARGO=$(rustup which --toolchain 1.96.1 cargo)" >> "$GITHUB_ENV"
+
+      - name: Build crypto-enabled FIT tools
+        run: sh scripts/tyfza1/build-fit-tools.sh "$RUNNER_TEMP/tyfza1-fit-tools"
+
+      - name: Download stock radio/PON firmware inputs
+        if: inputs.include_runtime_firmware != false
+        run: |
+          mkdir -p artifacts/runtime-inputs
+          gh release download v0.1.0-alpha --repo LeoooChen/PonWRT-TYFZA1 \
+            --pattern tyfza1-runtime-inputs-v1.tar.gz --dir artifacts
+          tar -xzf artifacts/tyfza1-runtime-inputs-v1.tar.gz -C artifacts/runtime-inputs
+          du -sh artifacts/runtime-inputs
+
+      - name: Install stock firmware inputs
+        if: inputs.include_runtime_firmware != false
+        run: python3 scripts/tyfza1/install_runtime_inputs.py artifacts/runtime-inputs files
+
+      - name: Install feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Apply TYFZA1 LuCI patches
+        run: sh scripts/tyfza1/apply-luci-patches.sh
+
+      - name: Prepare FIT signing key
+        env:
+          FIT_SIGNING_KEY: ${{ secrets.TYFZA1_FIT_SIGNING_KEY }}
+        run: |
+          mkdir -p keys/tyfza1-build-keys
+          umask 077
+          if [ -n "$FIT_SIGNING_KEY" ]; then
+            printf '%s\n' "$FIT_SIGNING_KEY" > keys/tyfza1-build-keys/dev.key
+            echo 'Using TYFZA1_FIT_SIGNING_KEY secret'
+          else
+            # Vendor Verified-Boot dev key from the GPL release of the stock
+            # bootloader; accepted by the OEM U-Boot without modification.
+            BASE=https://raw.githubusercontent.com/jameywine/GPL-for-GP3000/5090fbcb6ba743dd7b1314811ef557bad0460147/bootloader/Verified_Boot/verifed_key_06-04-2020/dev.key
+            curl --fail --location --retry 3 --connect-timeout 15 --max-time 60 \
+              "$BASE" --output keys/tyfza1-build-keys/dev.key ||
+            curl --fail --location --retry 3 --connect-timeout 15 --max-time 60 \
+              "https://cdn.jsdelivr.net/gh/jameywine/GPL-for-GP3000@5090fbcb6ba743dd7b1314811ef557bad0460147/bootloader/Verified_Boot/verifed_key_06-04-2020/dev.key" \
+              --output keys/tyfza1-build-keys/dev.key
+            echo 'bea80932793531fe263f62bf4de3ee95754ea7b9766eda23a418c22f06ce127f  keys/tyfza1-build-keys/dev.key' | sha256sum -c -
+            echo 'Using vendor Verified-Boot key from the GPL release'
+          fi
+          openssl req -new -x509 -key keys/tyfza1-build-keys/dev.key \
+            -out keys/tyfza1-build-keys/dev.crt -subj /CN=TYFZA1-FIT -days 3650
+
+      - name: Configure firmware
+        run: |
+          cp configs/tyfza1-boot.config .config
+          make defconfig
+          for package in luci-app-tyfza1-pon luci-theme-argon tyfza1-pon-control tyfza1-storage; do
+            grep -qx "CONFIG_PACKAGE_$package=y" .config || {
+              echo "::error::Required package missing after defconfig: $package" >&2
+              exit 1
+            }
+          done
+          grep -qx "CONFIG_TARGET_rtl9617c_generic_DEVICE_tianyi_tyfza1=y" .config
+
+      - uses: actions/cache@v4
+        with:
+          path: dl
+          key: tyfza1-dl-${{ runner.os }}-${{ hashFiles('feeds.conf.default') }}
+          restore-keys: tyfza1-dl-${{ runner.os }}-
+
+      - name: Download sources
+        run: |
+          make download -j"$(nproc)" || make download -j1 V=s
+
+      - name: Build firmware
+        env:
+          TYFZA1_SIGNING_KEYS: ${{ github.workspace }}/keys/tyfza1-build-keys
+          TYFZA1_MKIMAGE: ${{ runner.temp }}/tyfza1-fit-tools/bin/mkimage
+        run: |
+          make -j"$(nproc)" || make -j1 V=s
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts/firmware
+          find bin/targets/rtl9617c/generic -maxdepth 1 -type f \
+            -exec cp {} artifacts/firmware/ \;
+          cp .config artifacts/firmware/config.seed
+          (cd artifacts/firmware && sha256sum * > SHA256SUMS)
+          ls -lh artifacts/firmware
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tyfza1-firmware
+          path: artifacts/firmware/
+          retention-days: 30
+
+      - name: Publish release
+        if: inputs.release_tag != ''
+        run: |
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "$RELEASE_TAG" --draft
+          fi
+          gh release upload "$RELEASE_TAG" \
+            artifacts/firmware/sysupgrade.bin artifacts/firmware/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false

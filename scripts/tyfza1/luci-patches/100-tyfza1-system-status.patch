@@ -1,41 +1,50 @@
 --- a/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
 +++ b/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js
-@@ -25,6 +25,10 @@
- 	method: 'info'
+@@ -43,6 +43,10 @@
+ 	method: 'getTempInfo'
  });
- 
+
 +var callHardwareStatus = rpc.declare({
 +	object: 'luci.tyfza1-system', method: 'status', expect: { '': {} }, reject: true
 +});
 +
  return baseclass.extend({
  	title: _('System'),
- 
-@@ -34,7 +38,10 @@
- 			L.resolveDefault(callSystemInfo(), {}),
+
+@@ -60,7 +64,10 @@
+ 			L.resolveDefault(callTempInfo(), {}),
  			L.resolveDefault(callLuciVersion(), { revision: _('unknown version'), branch: 'LuCI' }),
  			L.resolveDefault(callGetUnixtime(), 0),
 -			uci.load('system')
-+			uci.load('system'),
 +			callHardwareStatus().catch(function(error) {
 +				return { temperature_error: error.message };
-+			})
++			}),
++			uci.load('system')
  		]);
  	},
- 
-@@ -62,11 +69,16 @@
+
+@@ -70,7 +79,8 @@
+ 		    cpuusage    = data[4],
+ 		    tempinfo    = data[5],
+ 		    luciversion = data[6],
+-		    unixtime    = data[7];
++		    unixtime    = data[7],
++		    hardware    = data[8];
+
+ 		luciversion = luciversion.branch + ' ' + luciversion.revision;
+
+@@ -96,11 +106,15 @@
  			}).format(date);
  		}
- 
-+		var hardware = data[5];
+
 +		var temperature = hardware.temperature_error ? '温度读取失败' : hardware.temperature_mC == null ?
 +			'温度未提供' : (hardware.temperature_mC / 1000).toFixed(1) + '°C';
 +		var platform = 'Realtek/RTL9617C（' + temperature + '）';
 +
  		var fields = [
  			_('Hostname'),         boardinfo.hostname,
- 			_('Model'),            boardinfo.model,
- 			_('Architecture'),     boardinfo.system,
+ 			_('Model'),            boardinfo.model + cpubench.cpubench,
+ 			_('Architecture'),     cpuinfo.cpuinfo || boardinfo.system,
 -			_('Target Platform'),  (L.isObject(boardinfo.release) ? boardinfo.release.target : ''),
 +			_('Target Platform'),  platform,
  			_('Firmware Version'), (L.isObject(boardinfo.release) ? boardinfo.release.description + ' / ' : '') + (luciversion || ''),
@@ -43,9 +52,9 @@
  			_('Local Time'),       datestr,
 --- a/modules/luci-mod-status/root/usr/share/rpcd/acl.d/luci-mod-status-index.json
 +++ b/modules/luci-mod-status/root/usr/share/rpcd/acl.d/luci-mod-status-index.json
-@@ -11,7 +11,8 @@
+@@ -14,7 +14,8 @@
  			"ubus": {
- 				"luci": [ "getVersion", "getUnixtime", "getOdhcp6cStats" ],
+ 				"luci": [ "getVersion", "getUnixtime", "getOdhcp6cStats", "getBuiltinEthernetPorts" ],
  				"file": [ "list", "read" ],
 -				"system": [ "board", "info" ]
 +				"system": [ "board", "info" ],

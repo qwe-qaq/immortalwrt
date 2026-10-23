@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=TYFZA1 PON configuration and live status
-LUCI_DEPENDS:=+luci-base +luci-theme-argon +luci-i18n-argon-config-zh-cn +luci-mod-network +luci-mod-status +luci-proto-ppp +luci-proto-ipv6 +luci-i18n-base-zh-cn +rpcd-mod-ucode +ucode-mod-fs +tyfza1-pon-control
+LUCI_DEPENDS:=+luci-base +luci-theme-argon +luci-mod-network +luci-mod-status +luci-proto-ppp +luci-proto-ipv6 +luci-i18n-base-zh-cn +rpcd-mod-ucode +ucode-mod-fs +tyfza1-pon-control
 LUCI_EXTRA_DEPENDS:=tyfza1-pon-control (>=0.8.2_beta)
 LUCI_PKGARCH:=all
 PKG_VERSION:=0.8.2_beta

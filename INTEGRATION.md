@@ -104,6 +104,24 @@ FIT ABI（conf-0 = 2.5G、conf-1 = 全千兆，由原厂 `b_conf` 选择），�
 - `tyfza1-pon-control` 需要主机安装 Rust/cargo（aarch64 musl target）。
 - 未做实机冷启动/2.5G 转发的硬件验收（原项目亦如此标注）。
 
+## 云端编译（GitHub Actions）
+
+`.github/workflows/build-tyfza1.yml`：手动触发（或 push `v*` tag），
+自动完成依赖安装、Rust 工具链、加密 mkimage 构建、原厂运行时固件
+下载（上游公开 release）与安装、luci feed 补丁、FIT 签名
+（默认使用 GPL 仓库中的原厂 Verified Boot 密钥，可用
+`TYFZA1_FIT_SIGNING_KEY` secret 覆盖）、编译与产物上传；
+`release_tag` 输入非空时发布 Release。
+
+对 ImmortalWrt 的两处小适配：
+- `luci-app-tyfza1-pon` 去掉 `+luci-i18n-argon-config-zh-cn` 依赖
+  （ImmortalWrt 的 luci feed 无 argon-config 包，其 argon 主题自带
+  设置界面）；种子配置同步移除该行。
+- `scripts/tyfza1/luci-patches/100` 按ImmortalWrt luci 重排
+  （系统状态页含 CPU 负载/温度字段、ACL 增加
+  `getBuiltinEthernetPorts`）；三个补丁均已在 ImmortalWrt luci
+  feed 上验证可应用。
+
 ## 交付物
 
 - `iw/immortalwrt-master/`：整合完成的完整 ImmortalWrt 主线树
