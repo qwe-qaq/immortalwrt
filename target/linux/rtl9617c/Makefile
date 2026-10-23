@@ -4,8 +4,11 @@ include $(TOPDIR)/rules.mk
 ARCH:=aarch64
 BOARD:=rtl9617c
 BOARDNAME:=Realtek RTL9617C (Taurus)
-CPU_TYPE:=cortex-a55
-CPU_CFLAGS_cortex-a55:=-mcpu=cortex-a55
+# The SoC has Cortex-A55 cores, but code is built for the a53-compatible
+# armv8-a baseline: -mcpu=cortex-a55 trips GCC's always_inline memset/
+# memcpy target-option checks in the musl headers (mbedtls et al), and the
+# aarch64_cortex-a53 userspace feed is what this target ships against.
+CPU_TYPE:=cortex-a53
 SUBTARGETS:=generic
 FEATURES:=fpu nand ramdisk squashfs targz usb
 DEPENDS:=+@DRIVER_11AC_SUPPORT +@DRIVER_11AX_SUPPORT
