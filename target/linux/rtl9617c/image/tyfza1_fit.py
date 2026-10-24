@@ -83,7 +83,7 @@ def make_its(load, entry, fdt_load, kernel_version, signed=False, board_variants
             compression = "lzma"; load = <{fdt_load:#x}>;
             hash {{ algo = "sha256"; }};
             {signature}
-        }}
+        }};
 '''
         its = its.replace('        script {', fdt + '        script {')
         its = its.replace('default = "conf-dts";', 'default = "conf-0";')
