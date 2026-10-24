@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Common Tianyi TYFZA1 board support, consolidated from the native bring-up
-// chain (serial, NAND, stock-UBI layout, XRAM LAN, DMA TX, NI/LEDs, PON,
-// PCIe, USB). Register ranges, GPIO wiring and reservations verified against
-// TYFZA1's stock DTB SHA256 5124f860df3bcd2e20b87d058e19b1ddfdc7a46c9d876663
-// ba9feeff5a0f13ac; the four-GbE LED wiring comes from stock conf-1/fdt@1.
+// Common board support for the RTL9617C reference-design gateways handled by
+// this target (Tianyi TYFZA1 and YHTC PT1570-H10): stock reservations, UART,
+// NAND + stock partitions, MDIO, NI/XRAM LAN, PON, PCIe, USB and the LED
+// block. The front-panel buttons and the model string are board-specific and
+// live in the including DTS files.
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include "rtl9617c.dtsi"
@@ -75,17 +75,6 @@
 		lan3 { label = "LED_EPHY3"; gpios = <&gpio0 0 GPIO_ACTIVE_LOW>; };
 		usb1 { label = "LED_USB1"; gpios = <&gpio0 6 GPIO_ACTIVE_LOW>; };
 		led_wps: wps { label = "LED_WPS_G"; gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>; };
-	};
-
-	led-button {
-		compatible = "gpio-keys-polled";
-		poll-interval = <20>;
-		lights-toggle {
-			label = "lights_toggle";
-			linux,code = <KEY_LIGHTS_TOGGLE>;
-			gpios = <&gpio0 67 GPIO_ACTIVE_LOW>;
-			debounce-interval = <60>;
-		};
 	};
 };
 
@@ -167,6 +156,20 @@
 		phy-handle = <&phy0>;
 		realtek,dma-tx;
 		realtek,qm-rx;
+		/* Do NOT reverse realtek,lan-phys or phy-handle here.
+		 *
+		 * A MAC port and its PHY are wired together on the board: port 0 can only
+		 * talk to phy0 (mdio:01), port 3 only to phy3 (mdio:04). Pointing
+		 * phy-handle at phy3 makes port 0 negotiate a link with the wrong PHY -
+		 * the link comes up at 1 Gbps and the bridge puts the port in forwarding,
+		 * but rx_packets stays at 0 because the data path never connects.
+		 * Reversing only realtek,lan-phys is worse still: port 0 keeps phy-handle
+		 * (phy0) and port 3 also gets phy0, so phy_attach_direct() fails with
+		 * -EEXIST and LAN4 never registers.
+		 *
+		 * The panel order is therefore fixed by hardware: Linux lan1 is the jack
+		 * silkscreened LAN4. Renaming the interfaces would need a driver change,
+		 * not a device-tree change. */
 		realtek,lan-phys = <&phy0 &phy1 &phy2 &phy3>;
 		interrupts = <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
 	};

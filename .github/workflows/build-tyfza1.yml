@@ -104,7 +104,14 @@ jobs:
               exit 1
             }
           done
-          grep -qx "CONFIG_TARGET_rtl9617c_generic_DEVICE_tianyi_tyfza1=y" .config
+          # Both boards build from one run: the TYFZA1 pair keeps its own
+          # image/metadata/upgrade flow, the PT1570-H10 adds its own.
+          for device in tianyi_tyfza1 yhtc_pt1570; do
+            grep -qx "CONFIG_TARGET_rtl9617c_generic_DEVICE_$device=y" .config || {
+              echo "::error::Required device missing after defconfig: $device" >&2
+              exit 1
+            }
+          done
 
       - uses: actions/cache@v4
         with:

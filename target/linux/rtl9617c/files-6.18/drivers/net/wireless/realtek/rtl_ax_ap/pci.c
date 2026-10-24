@@ -1037,7 +1037,7 @@ static int rtl_ax_load_firmware(struct rtl_ax_ap *radio, const struct firmware *
 	if (ret)
 		return ret;
 	radio->cmac_registers_ready = true;
-	rtl_ax_mac_trx_registers(&radio->io);
+	rtl_ax_mac_trx_registers(&radio->io, radio->chip);
 	radio->trx_registers_ready = true;
 	ret = rtl_ax_phy_load(&radio->pdev->dev, radio->chip, &radio->phy);
 	if (ret)

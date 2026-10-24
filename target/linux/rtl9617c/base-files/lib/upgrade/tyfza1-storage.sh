@@ -19,9 +19,24 @@ tyfza1_plan_storage() {
 	local ubidev="$1" rootvol="$2" size="$3"
 	local path="/sys/class/ubi/$rootvol" data free root_ebs data_ebs=0
 	local leb=$(cat "$path/usable_eb_size")
+	# The OEM root volume IDs differ per board: the PT1570 has no ubi_fpga
+	# volume (the last one is ubi_dpi), so its IDs sit one lower than on the
+	# TYFZA1 - ubi0_3/ubi0_6 versus ubi0_4/ubi0_7.
+	#
+	# The check is deliberately strict. Both boards carry the same
+	# compatible string (tianyi,tyfza1), so nand_do_platform_check() cannot
+	# tell them apart - the UBI volume IDs are the only reliable
+	# discriminator left. Accepting the wrong pair here would let one
+	# board's image be written onto the other and land on foreign volumes.
+	local root_ids
+	case "$(board_name)" in
+		yhtc,pt1570*) root_ids="ubi_r0:${ubidev}_3|ubi_r1:${ubidev}_6" ;;
+		*) root_ids="ubi_r0:${ubidev}_4|ubi_r1:${ubidev}_7" ;;
+	esac
 	case "$(cat "$path/name"):$rootvol" in
-		ubi_r0:${ubidev}_4|ubi_r1:${ubidev}_7) ;;
-		*) echo "Unexpected TYFZA1 root volume: $rootvol" >&2; return 1 ;;
+		$root_ids) ;;
+		*) echo "Unexpected root volume: $rootvol for board $(board_name)" >&2
+		   return 1 ;;
 	esac
 	[ "$size" -gt 0 ] && [ "$size" -le 33648640 ] || {
 		echo "Root image must fit the 33648640-byte OEM slot limit" >&2

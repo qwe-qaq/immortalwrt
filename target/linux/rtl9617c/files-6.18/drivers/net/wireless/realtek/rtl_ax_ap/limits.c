@@ -3,6 +3,7 @@
 #include <linux/ctype.h>
 #include <linux/device.h>
 #include <linux/firmware.h>
+#include <linux/of.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include "phy.h"
@@ -271,11 +272,32 @@ void rtl_ax_limits_release(struct rtl_ax_limits *limits)
 	*limits = (struct rtl_ax_limits) {};
 }
 
+/*
+ * The radio parameter tables shipped under
+ * lib/firmware/realtek/tyfza1/<family>/ differ per board: the TYFZA1 wiring
+ * initialises both radios from their RFE54 directories (external 2.4G FEM),
+ * while the PT1570-H10's 8192XB reports RFE 50, carries no external 2.4G FEM
+ * and ships RFE50 tables, and its 8852C FEM stage uses the YH1570 variant
+ * directory. The boards are told apart by the root node compatible.
+ */
+static bool rtl_ax_board_is_pt1570(void)
+{
+	return of_machine_is_compatible("yhtc,pt1570-h10") ||
+	       of_machine_is_compatible("yhtc,pt1570-2p5g");
+}
 int rtl_ax_limits_load(struct device *dev, unsigned int chip, unsigned int stage,
 		       struct rtl_ax_limits *limits)
 {
 	const char *family = chip == RTL_AX_8852C ? "rtl8852ce" : "rtl8192xbe";
-	const char *fem = chip == RTL_AX_8852C ? "RTK66587_BPF" : "RTK66287";
+	/* RFE parameter directories differ per board: the PT1570-H10's 8192XB
+	 * reports RFE 50, carries no external 2.4G FEM and ships RFE50 tables;
+	 * its 8852C FEM stage uses the YH1570 variant. The TYFZA1 boards keep
+	 * the RFE54 directories. */
+	const char *rfe = (chip == RTL_AX_8852C || !rtl_ax_board_is_pt1570()) ?
+			  "RFE54" : "RFE50";
+	const char *fem = chip == RTL_AX_8852C ?
+		(rtl_ax_board_is_pt1570() ? "RTK66587_BPF_YH1570" : "RTK66587_BPF") :
+		(rtl_ax_board_is_pt1570() ? NULL : "RTK66287");
 	const char *const names[] = {"TXPWR_LMT.txt", "TXPWR_LMT_RU.txt",
 		"TXPWR_LMT_6G_LPI.txt", "TXPWR_LMT_RU_6G_LPI.txt",
 		"TXPWR_LMT_6G_STD.txt", "TXPWR_LMT_RU_6G_STD.txt",
@@ -288,8 +310,8 @@ int rtl_ax_limits_load(struct device *dev, unsigned int chip, unsigned int stage
 		const char *file = stage && table == 2 ? "TXPWR_LMT_6G_LOW.txt" :
 			stage && table == 3 ? "TXPWR_LMT_RU_6G_LOW.txt" : names[table];
 
-		snprintf(name, sizeof(name), "realtek/tyfza1/%s/RFE54/%s%s%s",
-			 family, stage ? fem : "", stage ? "/" : "", file);
+		snprintf(name, sizeof(name), "realtek/tyfza1/%s/%s/%s%s%s",
+			 family, rfe, stage && fem ? fem : "", stage && fem ? "/" : "", file);
 		ret = rtl_ax_limit_file(dev, name, limits, table & 1, table / 2);
 		if (ret)
 			return ret;

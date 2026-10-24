@@ -6,4 +6,15 @@
 / {
 	model = "Tianyi TYFZA1";
 	compatible = "tianyi,tyfza1", "realtek,rtl9617c";
+
+	led-button {
+		compatible = "gpio-keys-polled";
+		poll-interval = <20>;
+		lights-toggle {
+			label = "lights_toggle";
+			linux,code = <KEY_LIGHTS_TOGGLE>;
+			gpios = <&gpio0 67 GPIO_ACTIVE_LOW>;
+			debounce-interval = <60>;
+		};
+	};
 };

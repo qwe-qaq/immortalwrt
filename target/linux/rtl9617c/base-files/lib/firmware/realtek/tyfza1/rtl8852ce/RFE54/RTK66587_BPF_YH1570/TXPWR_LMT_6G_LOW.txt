@@ -1,0 +1,718 @@
+//RTK66587_PON_BPF
+//
+// Format:					
+//					
+// 		Note: The order of the tables MUST match the definition in WLAN driver.			
+//					
+//		Power Limit Table Parameter Definition			
+//					
+//		@@Ver=3.0			
+//					
+//	(1)	Version 3.0 support to add regulations in the Power Limit Table from column 4.
+//		Customers can add new regulations by using DomainCode or CountryConde(ISO 3166-2).			
+//					
+//	(2)	Syntax:
+//			1. @@DomainCode=xx,  Regulation=xx
+//			2. @@CountryCode=xx,  Regulation=xx
+//					
+//		ex.			
+//			   @@DomainCode=0x2B, Regulation=IC	//RTK define domain code 0x2B for IC in colume 4
+//			   @@DomainCode=0x28, Regulation=KCC	//RTK define domain code 0x28 for KCC in colume 5
+//			   @@DomainCode=0x62, Regulation=C6	//Customer define domain code 0x62 for C6 in colume 6
+//			   @@CountryCode=US, Regulation=C6	//Customer define country code US for C6 in colume 6
+//			   @@CountryCode=GB, Regulation=C7	//Customer define country code GB for C7 in colume 7
+//					
+//		One DomainCode MUST has only one Regulation in Table.			
+//		One CountyCode MUST has only one Regulation in Table.			
+//					
+//	(3)	Error Syntax:
+//					
+//			   @@DomainCode=0x2D, Regulation=C6
+//			   @@DomainCode=0x2D, Regulation=C7
+//			   @@CountryCode=US, Regulation=C8
+//			   @@CountryCode=US, Regulation=C9
+//					
+//					
+//	(4)	If want to disable Tx power limit for one DomainCode or CountryConde, you can write "NONE" in Regulation.
+//					
+//		Syntax:			
+//			1. @@DomainCode=xx,  Regulation=NONE
+//			2. @@CountryCode=xx,  Regulation=NONE
+//					
+//		ex.			
+//			   @@DomainCode=0x2D, Regulation=NONE	//The domain code 0x2D will be disable in the Power Limit Table.
+//			   @@CountryCode=US, Regulation=NONE	//The country code US will be disable in the Power Limit Table.
+//					
+//					
+//					
+//					
+//		Band:			6G
+//		Bandwidth:		20/40/80/160 MHZ	
+//		RF Path:		1/2 Transmit RF	
+//		Rate Section:	OFDM/HE		
+//		Regulation: FCC/ETSI/MKK/IC/KCC/ACMA/CHILE/UKRAINE/MEXICO/CN/QATAR			
+//					
+//		Description:			
+//		1. IF in 1T test			
+//		2. power is real dBm.			
+//		3. // is for comment.			
+//					
+// 		NA is non-release channle.			
+//					
+//		Limit Table Version : V12			
+@@Ver=3.0					
+@@CountryCode=CL, Regulation=CHILE
+@@CountryCode=UA, Regulation=UKRAINE
+//					
+//Table 1: ===========================================					
+//					
+##	6G, 20M, 1T, OFDM, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH01	6	16.5	6		
+CH05	5.5	16.5	6		
+CH09	5.5	16.5	6		
+CH13	5.5	16.5	6		
+CH17	5.5	16.5	6		
+CH21	5.5	16.5	6		
+CH25	5.5	16.5	6		
+CH29	5.5	16.5	6		
+CH33	5.5	16.5	6		
+CH37	5.5	16.5	6		
+CH41	5.5	16.5	6		
+CH45	5.5	16.5	6		
+CH49	5.5	16.5	6		
+CH53	5.5	16.5	6		
+CH57	5.5	16.5	6		
+CH61	5.5	16.5	6		
+CH65	5.5	16.5	6		
+CH69	5.5	16.5	6		
+CH73	5.5	16.5	6		
+CH77	5.5	16.5	6		
+CH81	5.5	16.5	6		
+CH85	5.5	16.5	6		
+CH89	5.5	16.5	6		
+CH93	5.5	16.5	6		
+// 6G UNII-6					
+CH97	5.5	NA	6		
+CH101	5.5	NA	6		
+CH105	6	NA	6		
+CH109	5.5	NA	6		
+CH113	5.5	NA	6		
+// 6G UNII-7 & 8					
+CH117	5.5	NA	6.5		
+CH121	5.5	NA	6.5		
+CH125	5.5	NA	6.5		
+CH129	5.5	NA	6.5		
+CH133	5.5	NA	6.5		
+CH137	5.5	NA	6.5		
+CH141	5.5	NA	6.5		
+CH145	5.5	NA	6.5		
+CH149	6	NA	6.5		
+CH153	5.5	NA	6.5		
+CH157	5.5	NA	6.5		
+CH161	5.5	NA	6.5		
+CH165	5.5	NA	6.5		
+CH169	5.5	NA	6.5		
+CH173	5.5	NA	6.5		
+CH177	5.5	NA	8		
+CH181	5.5	NA	8		
+CH185	5.5	NA	8		
+CH189	5.5	NA	8		
+CH193	5.5	NA	8		
+CH197	5.5	NA	8		
+CH201	5.5	NA	8		
+CH205	5.5	NA	8		
+CH209	5.5	NA	8		
+CH213	5.5	NA	8		
+CH217	5.5	NA	8		
+CH221	5.5	NA	8		
+CH225	5.5	NA	8		
+CH229	6	NA	8		
+CH233	6	NA	8		
+CH237	NA	NA	NA		
+CH241	NA	NA	NA		
+CH245	NA	NA	NA		
+CH249	NA	NA	NA		
+CH253	NA	NA	NA		
+##	END				
+//					
+//Table 2: ===========================================					
+//					
+##	6G, 20M, 2T, OFDM, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH01	-0.5	13.5	3		
+CH05	-1	13.5	3		
+CH09	-1	13.5	3		
+CH13	-1	13.5	3		
+CH17	-1	13.5	3		
+CH21	-1	13.5	3		
+CH25	-1	13.5	3		
+CH29	-1	13.5	3		
+CH33	-1	13.5	3		
+CH37	-1	13.5	3		
+CH41	-1	13.5	3		
+CH45	-1	13.5	3		
+CH49	-1	13.5	3		
+CH53	-1	13.5	3		
+CH57	-1	13.5	3		
+CH61	-1	13.5	3		
+CH65	-1	13.5	3		
+CH69	-1	13.5	3		
+CH73	-1	13.5	3		
+CH77	-1	13.5	3		
+CH81	-1	13.5	3		
+CH85	-1	13.5	3		
+CH89	-1	13.5	3		
+CH93	-0.5	13.5	3		
+// 6G UNII-6					
+CH97	-0.5	NA	3		
+CH101	-0.5	NA	3		
+CH105	-0.5	NA	3		
+CH109	-0.5	NA	3		
+CH113	-0.5	NA	3		
+// 6G UNII-7 & 8					
+CH117	-0.5	NA	3		
+CH121	-0.5	NA	3		
+CH125	-0.5	NA	3		
+CH129	-0.5	NA	3		
+CH133	-0.5	NA	3		
+CH137	-0.5	NA	3		
+CH141	-0.5	NA	3		
+CH145	-0.5	NA	3		
+CH149	-0.5	NA	3		
+CH153	-0.5	NA	3		
+CH157	-0.5	NA	3		
+CH161	-0.5	NA	3		
+CH165	-0.5	NA	3		
+CH169	-0.5	NA	3		
+CH173	-0.5	NA	3		
+CH177	-0.5	NA	5		
+CH181	-0.5	NA	5		
+CH185	-0.5	NA	5		
+CH189	-0.5	NA	5		
+CH193	-0.5	NA	5		
+CH197	-0.5	NA	5		
+CH201	-0.5	NA	5		
+CH205	-0.5	NA	5		
+CH209	-0.5	NA	5		
+CH213	-0.5	NA	5		
+CH217	-0.5	NA	5		
+CH221	-0.5	NA	5		
+CH225	-0.5	NA	5		
+CH229	0	NA	5		
+CH233	0	NA	5		
+CH237	NA	NA	NA		
+CH241	NA	NA	NA		
+CH245	NA	NA	NA		
+CH249	NA	NA	NA		
+CH253	NA	NA	NA		
+##	END				
+//					
+//Table 3: ===========================================					
+//					
+##	6G, 20M, 1T, HE, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH01	6	16.5	6		
+CH05	5.5	16.5	6		
+CH09	5.5	16.5	6		
+CH13	5.5	16.5	6		
+CH17	5.5	16.5	6		
+CH21	5.5	16.5	6		
+CH25	5.5	16.5	6		
+CH29	5.5	16.5	6		
+CH33	5.5	16.5	6		
+CH37	5.5	16.5	6		
+CH41	5.5	16.5	6		
+CH45	5.5	16.5	6		
+CH49	5.5	16.5	6		
+CH53	5.5	16.5	6		
+CH57	5.5	16.5	6		
+CH61	5.5	16.5	6		
+CH65	5.5	16.5	6		
+CH69	5.5	16.5	6		
+CH73	5.5	16.5	6		
+CH77	5.5	16.5	6		
+CH81	5.5	16.5	6		
+CH85	5.5	16.5	6		
+CH89	5.5	16.5	6		
+CH93	5.5	16.5	6		
+// 6G UNII-6					
+CH97	5.5	NA	6		
+CH101	5.5	NA	6		
+CH105	6	NA	6		
+CH109	5.5	NA	6		
+CH113	5.5	NA	6		
+// 6G UNII-7 & 8					
+CH117	5.5	NA	6.5		
+CH121	5.5	NA	6.5		
+CH125	5.5	NA	6.5		
+CH129	5.5	NA	6.5		
+CH133	5.5	NA	6.5		
+CH137	5.5	NA	6.5		
+CH141	5.5	NA	6.5		
+CH145	5.5	NA	6.5		
+CH149	6	NA	6.5		
+CH153	5.5	NA	6.5		
+CH157	5.5	NA	6.5		
+CH161	5.5	NA	6.5		
+CH165	5.5	NA	6.5		
+CH169	5.5	NA	6.5		
+CH173	5.5	NA	6.5		
+CH177	5.5	NA	8		
+CH181	5.5	NA	8		
+CH185	5.5	NA	8		
+CH189	5.5	NA	8		
+CH193	5.5	NA	8		
+CH197	5.5	NA	8		
+CH201	5.5	NA	8		
+CH205	5.5	NA	8		
+CH209	5.5	NA	8		
+CH213	5.5	NA	8		
+CH217	5.5	NA	8		
+CH221	5.5	NA	8		
+CH225	5.5	NA	8		
+CH229	6	NA	8		
+CH233	6	NA	8		
+CH237	NA	NA	NA		
+CH241	NA	NA	NA		
+CH245	NA	NA	NA		
+CH249	NA	NA	NA		
+CH253	NA	NA	NA		
+##	END				
+//					
+//Table 4: ===========================================					
+//					
+##	6G, 20M, 2T, HE, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH01	-0.5	13.5	3		
+CH05	-1	13.5	3		
+CH09	-1	13.5	3		
+CH13	-1	13.5	3		
+CH17	-1	13.5	3		
+CH21	-1	13.5	3		
+CH25	-1	13.5	3		
+CH29	-1	13.5	3		
+CH33	-1	13.5	3		
+CH37	-1	13.5	3		
+CH41	-1	13.5	3		
+CH45	-1	13.5	3		
+CH49	-1	13.5	3		
+CH53	-1	13.5	3		
+CH57	-1	13.5	3		
+CH61	-1	13.5	3		
+CH65	-1	13.5	3		
+CH69	-1	13.5	3		
+CH73	-1	13.5	3		
+CH77	-1	13.5	3		
+CH81	-1	13.5	3		
+CH85	-1	13.5	3		
+CH89	-1	13.5	3		
+CH93	-0.5	13.5	3		
+// 6G UNII-6					
+CH97	-0.5	NA	3		
+CH101	-0.5	NA	3		
+CH105	-0.5	NA	3		
+CH109	-0.5	NA	3		
+CH113	-0.5	NA	3		
+// 6G UNII-7 & 8					
+CH117	-0.5	NA	3		
+CH121	-0.5	NA	3		
+CH125	-0.5	NA	3		
+CH129	-0.5	NA	3		
+CH133	-0.5	NA	3		
+CH137	-0.5	NA	3		
+CH141	-0.5	NA	3		
+CH145	-0.5	NA	3		
+CH149	-0.5	NA	3		
+CH153	-0.5	NA	3		
+CH157	-0.5	NA	3		
+CH161	-0.5	NA	3		
+CH165	-0.5	NA	3		
+CH169	-0.5	NA	3		
+CH173	-0.5	NA	3		
+CH177	-0.5	NA	5		
+CH181	-0.5	NA	5		
+CH185	-0.5	NA	5		
+CH189	-0.5	NA	5		
+CH193	-0.5	NA	5		
+CH197	-0.5	NA	5		
+CH201	-0.5	NA	5		
+CH205	-0.5	NA	5		
+CH209	-0.5	NA	5		
+CH213	-0.5	NA	5		
+CH217	-0.5	NA	5		
+CH221	-0.5	NA	5		
+CH225	-0.5	NA	5		
+CH229	0	NA	5		
+CH233	0	NA	5		
+CH237	NA	NA	NA		
+CH241	NA	NA	NA		
+CH245	NA	NA	NA		
+CH249	NA	NA	NA		
+CH253	NA	NA	NA		
+##	END				
+//					
+//Table 5: ===========================================					
+//					
+##	6G, 20M, 2T, HE, BF//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH01	-0.5	10.5	3		
+CH05	-1	10.5	3		
+CH09	-1	10.5	3		
+CH13	-1	10.5	3		
+CH17	-1	10.5	3		
+CH21	-1	10.5	3		
+CH25	-1	10.5	3		
+CH29	-1	10.5	3		
+CH33	-1	10.5	3		
+CH37	-1	10.5	3		
+CH41	-1	10.5	3		
+CH45	-1	10.5	3		
+CH49	-1	10.5	3		
+CH53	-1	10.5	3		
+CH57	-1	10.5	3		
+CH61	-1	10.5	3		
+CH65	-1	10.5	3		
+CH69	-1	10.5	3		
+CH73	-1	10.5	3		
+CH77	-1	10.5	3		
+CH81	-1	10.5	3		
+CH85	-1	10.5	3		
+CH89	-1	10.5	3		
+CH93	-0.5	10.5	3		
+// 6G UNII-6					
+CH97	-0.5	NA	3		
+CH101	-0.5	NA	3		
+CH105	-0.5	NA	3		
+CH109	-0.5	NA	3		
+CH113	-0.5	NA	3		
+// 6G UNII-7 & 8					
+CH117	-0.5	NA	3		
+CH121	-0.5	NA	3		
+CH125	-0.5	NA	3		
+CH129	-0.5	NA	3		
+CH133	-0.5	NA	3		
+CH137	-0.5	NA	3		
+CH141	-0.5	NA	3		
+CH145	-0.5	NA	3		
+CH149	-0.5	NA	3		
+CH153	-0.5	NA	3		
+CH157	-0.5	NA	3		
+CH161	-0.5	NA	3		
+CH165	-0.5	NA	3		
+CH169	-0.5	NA	3		
+CH173	-0.5	NA	3		
+CH177	-0.5	NA	5		
+CH181	-0.5	NA	5		
+CH185	-0.5	NA	5		
+CH189	-0.5	NA	5		
+CH193	-0.5	NA	5		
+CH197	-0.5	NA	5		
+CH201	-0.5	NA	5		
+CH205	-0.5	NA	5		
+CH209	-0.5	NA	5		
+CH213	-0.5	NA	5		
+CH217	-0.5	NA	5		
+CH221	-0.5	NA	5		
+CH225	-0.5	NA	5		
+CH229	0	NA	5		
+CH233	0	NA	5		
+CH237	NA	NA	NA		
+CH241	NA	NA	NA		
+CH245	NA	NA	NA		
+CH249	NA	NA	NA		
+CH253	NA	NA	NA		
+##	END				
+//					
+//Table 6: ===========================================					
+//					
+##	6G, 40M, 1T, HE, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH03	8.5	16.5	10		
+CH11	8.5	16.5	10		
+CH19	8.5	16.5	10		
+CH27	8.5	16.5	10		
+CH35	8.5	16.5	10		
+CH43	8.5	16.5	10		
+CH51	9	16.5	10		
+CH59	8.5	16.5	10		
+CH67	8.5	16.5	10		
+CH75	8.5	16.5	10		
+CH83	8.5	16.5	10		
+CH91	8.5	16.5	10		
+// 6G UNII-6					
+CH99	8.5	NA	10		
+CH107	8.5	NA	10		
+// 6G UNII-7 & 8					
+CH115	9	NA	10		
+CH123	9	NA	10		
+CH131	8.5	NA	10		
+CH139	8.5	NA	10		
+CH147	8.5	NA	10		
+CH155	8.5	NA	10		
+CH163	8.5	NA	10		
+CH171	8.5	NA	10.5		
+CH179	8.5	NA	10.5		
+CH187	8.5	NA	10.5		
+CH195	9	NA	10.5		
+CH203	8.5	NA	10.5		
+CH211	8.5	NA	10.5		
+CH219	8.5	NA	10.5		
+CH227	9	NA	10.5		
+CH235	NA	NA	NA		
+CH243	NA	NA	NA		
+CH251	NA	NA	NA		
+##	END				
+//					
+//Table 7: ===========================================					
+//					
+##	6G, 40M, 2T, HE, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH03	2.5	13.5	7		
+CH11	2.5	13.5	7		
+CH19	2.5	13.5	7		
+CH27	2.5	13.5	7		
+CH35	2.5	13.5	7		
+CH43	2.5	13.5	7		
+CH51	2.5	13.5	7		
+CH59	2.5	13.5	7		
+CH67	2.5	13.5	7		
+CH75	2.5	13.5	7		
+CH83	2.5	13.5	7		
+CH91	2.5	13.5	7		
+// 6G UNII-6					
+CH99	3	NA	7		
+CH107	3	NA	7		
+// 6G UNII-7 & 8					
+CH115	2.5	NA	7		
+CH123	2.5	NA	7		
+CH131	2.5	NA	7		
+CH139	2.5	NA	7		
+CH147	2.5	NA	7		
+CH155	2.5	NA	7		
+CH163	2.5	NA	7		
+CH171	2.5	NA	8		
+CH179	2.5	NA	8		
+CH187	2.5	NA	8		
+CH195	3	NA	8		
+CH203	2.5	NA	8		
+CH211	2.5	NA	8		
+CH219	2.5	NA	8		
+CH227	3	NA	8		
+CH235	NA	NA	NA		
+CH243	NA	NA	NA		
+CH251	NA	NA	NA		
+##	END				
+//					
+//Table 8: ===========================================					
+//					
+##	6G, 40M, 2T, HE, BF//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH03	2.5	10.5	7		
+CH11	2.5	10.5	7		
+CH19	2.5	10.5	7		
+CH27	2.5	10.5	7		
+CH35	2.5	10.5	7		
+CH43	2.5	10.5	7		
+CH51	2.5	10.5	7		
+CH59	2.5	10.5	7		
+CH67	2.5	10.5	7		
+CH75	2.5	10.5	7		
+CH83	2.5	10.5	7		
+CH91	2.5	10.5	7		
+// 6G UNII-6					
+CH99	3	NA	7		
+CH107	3	NA	7		
+// 6G UNII-7 & 8					
+CH115	2.5	NA	7		
+CH123	2.5	NA	7		
+CH131	2.5	NA	7		
+CH139	2.5	NA	7		
+CH147	2.5	NA	7		
+CH155	2.5	NA	7		
+CH163	2.5	NA	7		
+CH171	2.5	NA	8		
+CH179	2.5	NA	8		
+CH187	2.5	NA	8		
+CH195	3	NA	8		
+CH203	2.5	NA	8		
+CH211	2.5	NA	8		
+CH219	2.5	NA	8		
+CH227	3	NA	8		
+CH235	NA	NA	NA		
+CH243	NA	NA	NA		
+CH251	NA	NA	NA		
+##	END				
+//					
+//Table 9: ===========================================					
+//					
+##	6G, 80M, 1T, HE, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH07	11.5	12	12.5		
+CH23	11.5	12	12.5		
+CH39	11.5	12	12.5		
+CH55	11.5	12	12.5		
+CH71	11.5	12	12.5		
+CH87	11.5	12	12.5		
+// 6G UNII-6					
+CH103	11.5	NA	12		
+// 6G UNII-7 & 8					
+CH119	11.5	NA	12		
+CH135	11.5	NA	12		
+CH151	11.5	NA	12		
+CH167	11.5	NA	13		
+CH183	11.5	NA	13		
+CH199	11.5	NA	12.5		
+CH215	11	NA	12.5		
+CH231	NA	NA	NA		
+CH247	NA	NA	NA		
+##	END				
+//					
+//Table 10: ===========================================					
+//					
+##	6G, 80M, 2T, HE, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH07	5.5	12	9.5		
+CH23	5	12	9.5		
+CH39	5	12	9.5		
+CH55	5	12	9.5		
+CH71	5	12	9.5		
+CH87	5.5	12	9.5		
+// 6G UNII-6					
+CH103	5.5	NA	9.5		
+// 6G UNII-7 & 8					
+CH119	5	NA	9.5		
+CH135	5.5	NA	9.5		
+CH151	5	NA	9.5		
+CH167	5	NA	9.5		
+CH183	5	NA	9.5		
+CH199	5.5	NA	9.5		
+CH215	5.5	NA	9.5		
+CH231	NA	NA	NA		
+CH247	NA	NA	NA		
+##	END				
+//					
+//Table 11: ===========================================					
+//					
+##	6G, 80M, 2T, HE, BF//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH07	5.5	10.5	9.5		
+CH23	5	10.5	9.5		
+CH39	5	10.5	9.5		
+CH55	5	10.5	9.5		
+CH71	5	10.5	9.5		
+CH87	5.5	10.5	9.5		
+// 6G UNII-6					
+CH103	5.5	NA	9.5		
+// 6G UNII-7 & 8					
+CH119	5	NA	9.5		
+CH135	5.5	NA	9.5		
+CH151	5	NA	9.5		
+CH167	5	NA	9.5		
+CH183	5	NA	9.5		
+CH199	5.5	NA	9.5		
+CH215	5.5	NA	9.5		
+CH231	NA	NA	NA		
+CH247	NA	NA	NA		
+##	END				
+//					
+//Table 12: ===========================================					
+//					
+##	6G, 160M, 1T, HE, NA//				
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH15	13	9.5	10.5		
+CH47	13	9.5	10.5		
+CH79	13	9.5	10.5		
+// 6G UNII-6 & 7 & 8					
+CH111	13.5	NA	14		
+CH143	13.5	NA	13.5		
+CH175	13.5	NA	6.5		
+CH207	10	NA	6.5		
+CH239	NA	NA	NA		
+##	END				
+//					
+//Table 13: ===========================================					
+//					
+##	6G, 160M, 2T, HE, NA//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH15	8	9.5	10		
+CH47	7.5	9.5	10		
+CH79	7.5	9.5	10		
+// 6G UNII-6 & 7 & 8					
+CH111	7.5	NA	12		
+CH143	8	NA	12		
+CH175	8	NA	6		
+CH207	3.5	NA	6		
+CH239	NA	NA	NA		
+##	END				
+//					
+//Table 14: ===========================================					
+//					
+##	6G, 160M, 2T, HE, BF//
+##	START				
+##	#3#				
+##	FCC	ETSI	KCC		
+PShape	0	0	0		
+// 6G UNII-5					
+CH15	8	9.5	10		
+CH47	7.5	9.5	10		
+CH79	7.5	9.5	10		
+// 6G UNII-6 & 7 & 8					
+CH111	7.5	NA	12		
+CH143	8	NA	12		
+CH175	8	NA	6		
+CH207	3.5	NA	6		
+CH239	NA	NA	NA		
+##	END				

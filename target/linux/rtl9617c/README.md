@@ -1,15 +1,37 @@
-# Realtek RTL9617C (Taurus) — Tianyi TYFZA1
+# Realtek RTL9617C (Taurus) — Tianyi TYFZA1 / YHTC PT1570-H10
 
-Native ImmortalWrt support for the Tianyi TYFZA1 GPON/10G-EPON ONU
-(Realtek RTL9617C, quad Cortex-A55, Linux 6.18), integrated from the
-[PonWRT-TYFZA1](https://github.com/LeoooChen/PonWRT-TYFZA1) port project
-(baseline: OpenWrt main `79bc56cb` / kernel 6.18.55 — the same kernel
-version and hash as this tree's `kernel-6.18`).
+Native ImmortalWrt support for the Tianyi TYFZA1 and YHTC PT1570-H10
+GPON/10G-EPON ONUs (Realtek RTL9617C, quad Cortex-A55, Linux 6.18),
+integrated from the [PonWRT-TYFZA1](https://github.com/LeoooChen/PonWRT-TYFZA1)
+port project (baseline: OpenWrt main `79bc56cb` / kernel 6.18.55 — the same
+kernel version and hash as this tree's `kernel-6.18`). The PT1570-H10
+addition follows the PT1570 work in the
+[dreamtekcat fork](https://github.com/dreamtekcat/PonWRT-TYFZA1).
 
 The port covers the PON MAC (GPON/XG-PON/EPON, OMCI/OAM), the NI/XRAM
 wired path with DMA and QM forwarding, both PCIe radios (RTL8852C 5 GHz +
 RTL8192XB 2.4 GHz) with dual-PE hardware offload, USB, LEDs, sysupgrade
 and the storage migration off the OEM UBI layout.
+
+## Two boards, one target
+
+| | tianyi_tyfza1 | yhtc_pt1570 |
+| --- | --- | --- |
+| Boards | TYFZA1 / TYFZA1 2.5G (`tianyi,tyfza1*`) | PT1570-H10 / 2.5G (`yhtc,pt1570*`) |
+| Boot slot selectors (`${root_mtd}`) | `31:12` / `31:9` | `31:11` / `31:8` |
+| OEM root volume IDs | `ubi0_7` / `ubi0_4` | `ubi0_6` / `ubi0_3` (no `ubi_fpga` volume) |
+| Upgrade flow | `nand_do_upgrade` + storage-migration checks | direct `tyfza1_write_slots` + `platform_copy_config` |
+| Front-panel keys | lights toggle (GPIO 67/66) | reset (8), lights (103/66), wifi (99) |
+| 8192XB radio tables | `RFE54` (external 2.4G FEM) | `RFE50` (no external 2.4G FEM) |
+| 8852C FEM tables | `RTK66587_BPF` | `RTK66587_BPF_YH1570` |
+
+Both devices share the `tianyi,tyfza1` driver compatible; the PT1570 adds a
+leading `yhtc,pt1570-*` compatible so OpenWrt gets a distinct board name, and
+the sysupgrade scripts verify the OEM UBI volume IDs before touching any
+volume - a TYFZA1 image refuses to flash a PT1570 and vice versa. The radio
+parameter directories are selected per board inside the driver (root-node
+compatible check); the RFE50 and YH1570 tables ship under
+`base-files/lib/firmware/realtek/tyfza1/`.
 
 ## What was integrated
 
@@ -39,17 +61,20 @@ Final device-tree set:
 | File | Content |
 | --- | --- |
 | `dts/rtl9617c.dtsi` | SoC include (unchanged) |
-| `dts/rtl9617c-tyfza1.dtsi` | Common board: memory map + stock reservations, UART/watchdog, QSPI NAND + stock partitions (writable), MDIO + 4 GbE PHYs, NI/XRAM/DMA/QM node, GPIO, LEDs + light-switch button (four-GbE wiring), I2C BOSA, PON MAC, PCIe controllers + SerDes tables, USB PHY + xHCI |
-| `dts/rtl9617c-tyfza1.dts` | Four-GbE board (`tianyi,tyfza1`) |
-| `dts/rtl9617c-tyfza1-2p5g.dts` | 2.5G board (`tianyi,tyfza1-2p5g`): LED remap, RTL8221B Clause45 PHY on port 4, S3/reset GPIOs |
+| `dts/rtl9617c-tyfza1.dtsi` | Common board include shared by all four board files: memory map + stock reservations, UART/watchdog, QSPI NAND + stock partitions (writable), MDIO + 4 GbE PHYs, NI/XRAM/DMA/QM node, GPIO, LED block, I2C BOSA, PON MAC, PCIe controllers + SerDes tables, USB PHY + xHCI. Front-panel buttons live in the board files (they differ per board) |
+| `dts/rtl9617c-tyfza1.dts` | TYFZA1 four-GbE board (`tianyi,tyfza1`), lights key on GPIO 67 |
+| `dts/rtl9617c-tyfza1-2p5g.dts` | TYFZA1 2.5G board (`tianyi,tyfza1-2p5g`): LED remap, RTL8221B Clause45 PHY on port 4, lights key on GPIO 66 |
+| `dts/rtl9617c-pt1570.dts` | PT1570-H10 four-GbE board (`yhtc,pt1570-h10`): reset/lights/wifi keys on GPIO 8/103/99 |
+| `dts/rtl9617c-pt1570-2p5g.dts` | PT1570-H10 2.5G board (`yhtc,pt1570-2p5g`): LED remap + RTL8221B port 4, lights key on GPIO 66 |
 
-Dropped (bring-up milestones whose content is fully contained in the common
-include, or external-script-only workflows): `rtl9617c-tyfza1-mdio`,
+Dropped from the original bring-up ladder (content fully contained in the
+common include, or external-script-only workflows): `rtl9617c-tyfza1-mdio`,
 `-xram-lan`, `-dma-tx`, `-ni`, `-pon-status`, `-nand-readonly`,
 `-stock-ubi-readonly`, `-pcie`, `-pcie-2p5g`, `-ubi`, `-ubi-2p5g`, and the
-now-merged `-leds.dtsi`, `-2p5g.dtsi`, `-usb.dtsi` includes. Board names
-(`tianyi,tyfza1`, `tianyi,tyfza1-2p5g`) are unchanged, so `board.d`,
-`platform.sh`, uci-defaults and the storage migration keep matching.
+now-merged `-leds.dtsi`, `-2p5g.dtsi`, `-usb.dtsi` includes. The TYFZA1
+board names (`tianyi,tyfza1`, `tianyi,tyfza1-2p5g`) are unchanged, so
+`board.d`, uci-defaults and the storage migration keep matching; the
+PT1570 boards add their own `yhtc,pt1570-*` names with the same layout.
 
 ## Building
 

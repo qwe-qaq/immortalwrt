@@ -46,12 +46,21 @@ configure_link() {
 	config_get mode pon mode
 	[ -n "$mode" ] || mode=$(uci -c /var/run/tyfza1-factory get pon_factory.pon.mode) || return $?
 	pon_stage=bosa
-	printf '1\n' > "$device/bosa" || return $?
+	# The PT1570 carries a UX3361 MSA BOSA. The native driver only speaks
+	# the Semtech GN25L95/98 / GN28L95/96/97 register model, so identify()
+	# reads ff/ff/ff and returns -ENODEV. BOSA configuration is not a
+	# prerequisite for SerDes/MAC bring-up, so keep going rather than
+	# aborting the whole initialisation (stock behaves the same way when
+	# it finds an EEPROM).
+	printf '1\n' > "$device/bosa" || true
 	pon_stage=serdes
 	printf '%s\n' "$mode" > "$device/serdes" || return $?
 	pon_stage=onu_mac
 	config_get onu_mac pon onu_mac
 	[ -n "$onu_mac" ] || onu_mac=$(uci -q -c /var/run/tyfza1-factory get pon_factory.pon.onu_mac)
+	# Stock runoam.sh falls back to ELAN_MAC_ADDR when the EPON LLID table
+	# has no macAddr entry; the PT1570 factory config has none either.
+	[ -n "$onu_mac" ] || onu_mac=$(cat /tmp/tyfza1-factory/lan_mac 2>/dev/null)
 	if [ "$mode" != gpon ] && [ "$mode" != xgpon ] && [ "$mode" != xgspon ] ||
 	   [ -n "$onu_mac" ]; then
 		printf '%s\n' "$onu_mac" > "$device/onu_mac" || return $?

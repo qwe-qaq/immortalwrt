@@ -1,3 +1,6 @@
 config pon 'pon'
 	option enabled '1'
+	# Stock default on both the TYFZA1 and the PT1570-H10; the
+	# 87-tyfza1-pon-mode uci-default overrides it from the factory.
+	option mode 'xgpon'
 	option llid_count '1'

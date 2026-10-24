@@ -122,6 +122,31 @@ FIT ABI（conf-0 = 2.5G、conf-1 = 全千兆，由原厂 `b_conf` 选择），�
   `getBuiltinEthernetPorts`）；三个补丁均已在 ImmortalWrt luci
   feed 上验证可应用。
 
+## 新增第二块板：YHTC PT1570-H10（yhtc_pt1570）
+
+参考 [dreamtekcat fork](https://github.com/dreamtekcat/PonWRT-TYFZA1)
+的 PT1570 实战工作，以**增量方式**新增第二块板，TYFZA1 的编译产物
+（设备定义、DTS、镜像元数据、存储迁移流程）保持不变：
+
+- 新增 `dts/rtl9617c-pt1570.dts` / `-pt1570-2p5g.dts`（compatible
+  `yhtc,pt1570-h10` / `yhtc,pt1570-2p5g`，驱动继续匹配
+  `tianyi,tyfza1`）；三键面板（reset@8 / lights@103 / wifi@99）
+  取代 TYFZA1 的单键；公共 dtsi 的按键定义移入各板文件。
+- `image/Makefile` 新增 `yhtc_pt1570` 设备块；FIT 启动脚本的
+  槽位翻译参数化——TYFZA1 `31:12/31:9`（ubiblock0_7/0_4），
+  PT1570 `31:11/31:8`（ubiblock0_6/0_3，无 ubi_fpga 卷、卷 ID 低 1）。
+- `platform.sh` 按 board_name 分支：TYFZA1 保持 `nand_do_upgrade`
+  + 存储迁移校验；PT1570 走 fork 的 `tyfza1_write_slots`（LEB 边界
+  填充修复）+ `platform_copy_config`。`tyfza1-storage.sh` 的根卷
+  ID 校验按板分支（`ubi0_4/7` vs `ubi0_3/6`），两板镜像互拒刷入。
+- 无线参数目录按板选择（root compatible 判断，仅影响 PT1570）：
+  8192XB 用 `RFE50`（无外置 FEM）、8852C FEM 阶段用
+  `RTK66587_BPF_YH1570`；TYFZA1 保持 `RFE54`/`RTK66587_BPF`。
+  RFE50/YH1570 参数表已内置 `base-files/lib/firmware/`。RPQ 上报
+  阈值（0x9414）按芯片区分：8852C=12，8192XB=121（原厂动态公式值）。
+- 射频参数表（RFE50 八件、YH1570 十二件）取自 PT1570 原厂
+  rootfs，随 base-files 下发；TYFZA1 的校准仍走运行时固件流程。
+
 ## 交付物
 
 - `iw/immortalwrt-master/`：整合完成的完整 ImmortalWrt 主线树

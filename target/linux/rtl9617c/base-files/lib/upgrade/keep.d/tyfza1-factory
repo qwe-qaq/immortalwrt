@@ -1,0 +1,4 @@
+# Per-unit factory identity (MAC / SN / LOID / radio calibration) imported from
+# ubi_Config. Without this, sysupgrade would drop it and tyfza1-factory would
+# refuse to start (it no longer falls back to a copy bundled in the image).
+/etc/tyfza1-factory

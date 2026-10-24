@@ -1,0 +1,102 @@
+//8832CR RFE54 version = 51
+//RTK66587_PON_BPF
+
+//TX TSSI
+
+//S0
+//wire r_tssi_dck_auto_en = r_page58_14[13];
+//wire [3:0] r_tssi_dck_auto_start_dly = r_page58_14[21:18];
+0x5814	0x2012F000
+//wire [3:0] r_tssi_adc_sampling_shift_ofdm = r_page58_1C[24:21];
+//wire [3:0] r_tssi_adc_sampling_shift_cck = r_page58_1C[28:25];
+0x581c	0x3DC80280
+//A
+0x5824 0x0001C845
+0x582c 0x0001C845
+0x5834 0x0001C845
+0x583c 0x0001C845
+0x5844 0x0001C845
+0x584c 0x0001C845
+//K          
+0x5828 0x100001C3
+0x5830 0x100001C3	
+0x5838 0x100001C3 
+0x5840 0x100001C6
+0x5848 0x100001C5
+0x5850 0x100001C9
+//0x5854	0x000115F2
+//0x5858	0x10000121
+//0x585c	0x000115F2
+//0x5860	0x10000121
+
+
+//S1
+//wire r_tssi_dck_auto_en = r_page78_14[13];
+//wire [3:0] r_tssi_dck_auto_start_dly = r_page78_14[21:18];
+0x7814	0x2012F000
+//wire [3:0] r_tssi_adc_sampling_shift_ofdm = r_page78_1C[24:21];
+//wire [3:0] r_tssi_adc_sampling_shift_cck = r_page78_1C[28:25];
+0x781c	0x3DC80280
+//A
+0x7824 0x0001C407
+0x782c 0x0001C407
+0x7834 0x0001C407
+0x783c 0x0001C407
+0x7844 0x0001C407
+0x784c 0x0001C407
+//K          
+0x7828 0x100001C3
+0x7830 0x100001C3
+0x7838 0x100001C3
+0x7840 0x100001C6
+0x7848 0x100001C5
+0x7850 0x100001C9
+//0x7854	0x000115F2
+//0x7858	0x10000121
+//0x785c	0x000115F2
+//0x7860	0x10000121
+
+
+//tssi tssi_bypass_by_C_max[8:0] = 0x174 (25dBm) 
+0x58d8	0x80080174
+0x78d8	0x80080174
+
+
+//CBW160 TXSC DBW20/40/80 DE oft
+//CBW160 ADCWA for DBW20 0x1a8 [7:0]
+//CBW160 ADCWA for DBW40 0x1a8 [15:8]
+//CBW160 ADCWA for DBW80 0x1a8 [23:16]
+//reserved 0x1a8 [31:24]
+0x1A8	0x0004040A 
+
+
+//BW160 Tx POWER BY MACID
+0x190	0x2A2A2A2A //21,21,21,21 //MCS3, MCS2, MCS1, MCS0 1ss
+0x194	0x282A2A2A //20,21,21,21 //MCS7, MCS6, MCS5, MCS4 1ss   
+0x198	0x1C1E2226 //14,15,17,19 //MCS11, MCS10, MCS9, MCS8 1ss
+0x19C	0x2A2A2A2A //21,21,21,21 //MCS3, MCS2, MCS1, MCS0 2ss
+0x1A0	0x282A2A2A //20,21,21,21 //MCS7, MCS6, MCS5, MCS4 2ss   
+0x1A4	0x1C1E2226 //14,15,17,19 //MCS11, MCS10, MCS9, MCS8 2ss
+
+
+
+// RX LNA gain/bypass mode:15dB/-9dB
+// Path A
+// 0x45DC[15:8]:gain mode
+// 0x45DC[7:0]:bypass mode
+0x45DC	0xE1CB3CDC
+
+// Path B
+// 0x4740[15:8]:gain mode  
+// 0x4740[7:0]:bypass mode
+0x4740	0xE4CD3CDC
+
+
+//RX Gain
+//rtl8852c version = 44
+//r_BW_start_half_sym_count = 6->5, 0x47AC[31:28]
+0x47ac	0x5248c631
+
+
+
+0xffff	0xffff

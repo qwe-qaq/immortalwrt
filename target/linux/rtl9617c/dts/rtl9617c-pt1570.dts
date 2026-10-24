@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// YHTC PT1570-H10, four internal GbE PHYs on NI ports 0-3. The leading
+// "yhtc,pt1570-h10" compatible gives this board its own OpenWrt board name
+// (sysinfo/model, upgrade scripts) while the drivers keep matching on
+// "tianyi,tyfza1"; sysupgrade tells the board flavours apart by their UBI
+// volume IDs (PT1570 root slots sit at ubi0_3/ubi0_6, one below TYFZA1).
+/dts-v1/;
+#include "rtl9617c-tyfza1.dtsi"
+
+/ {
+	model = "YHTC PT1570-H10";
+	compatible = "yhtc,pt1570-h10", "tianyi,tyfza1", "realtek,rtl9617c";
+
+	/*
+	 * PT1570-H10 carries three front-panel keys. GPIO numbers were established
+	 * by dumping the raw input registers from U-Boot while pressing each key:
+	 *   reset  -> bank0 pin8  = 8
+	 *   lights -> bank3 pin3  = 99
+	 *   wifi   -> bank3 pin7  = 103
+	 * The stock FDT labels these as <&gpio2 7> / <&gpio2 3>, but that phandle
+	 * actually resolves to bank@3 (node name and range index are off by one).
+	 *
+	 * The stock node used "gpio-keys" (interrupt driven); polling is kept here
+	 * because the native GPIO driver does not wire up the bank interrupts.
+	 */
+	led-button {
+		compatible = "gpio-keys-polled";
+		poll-interval = <20>;
+
+		btn-reset {
+			label = "reset";
+			linux,code = <KEY_RESTART>;
+			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+			debounce-interval = <60>;
+		};
+		btn-led {
+			label = "lights_toggle";
+			linux,code = <KEY_LIGHTS_TOGGLE>;
+			gpios = <&gpio0 103 GPIO_ACTIVE_LOW>;
+			debounce-interval = <60>;
+		};
+		btn-wifi {
+			/* Label must be one of gpio-button-hotplug's known set
+			 * (reset / wps / rfkill / lights_toggle) - anything else is
+			 * dropped silently. Use "rfkill": OpenWrt ships
+			 * /etc/rc.button/rfkill, which already toggles every radio
+			 * (all-on <-> all-off), so no custom script is needed.
+			 * "wps" was rejected at image build time because the
+			 * wifi-scripts package also owns /etc/rc.button/wps. */
+			label = "rfkill";
+			/* gpio-button-hotplug picks the script from linux,code, not from
+			 * label: it looks the code up in a fixed table (BTN_0..9,
+			 * KEY_LIGHTS_TOGGLE, KEY_RESTART, KEY_RFKILL, ...) and drops the
+			 * button entirely when the code is absent. KEY_WPS_BUTTON is not
+			 * in that table, which is why this key produced no events at all
+			 * no matter what its label was. KEY_RFKILL maps to
+			 * /etc/rc.button/rfkill, which toggles every radio. */
+			linux,code = <KEY_RFKILL>;
+			gpios = <&gpio0 99 GPIO_ACTIVE_LOW>;
+			debounce-interval = <60>;
+		};
+	};
+};
