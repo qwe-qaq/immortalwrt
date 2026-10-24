@@ -53,7 +53,7 @@ def make_its(load, entry, fdt_load, kernel_version, signed=False, board_variants
             data = /incbin/("kernel.lzma");
             type = "kernel"; arch = "arm64"; os = "linux";
             compression = "lzma"; load = <{load:#x}>; entry = <{entry:#x}>;
-            hash {{ algo = "sha256"; }}
+            hash {{ algo = "sha256"; }};
             {signature}
         }};
         fdt-dts {{
@@ -83,7 +83,7 @@ def make_its(load, entry, fdt_load, kernel_version, signed=False, board_variants
             compression = "lzma"; load = <{fdt_load:#x}>;
             hash {{ algo = "sha256"; }};
             {signature}
-        }}
+        }};
 '''
         its = its.replace('        script {', fdt + '        script {')
         its = its.replace('default = "conf-dts";', 'default = "conf-0";')
@@ -103,6 +103,15 @@ def main():
     parser.add_argument('--dtb-2p5g', type=Path, required=True)
     parser.add_argument('--mkimage', default=os.environ.get('TYFZA1_MKIMAGE', 'mkimage'))
     parser.add_argument('--kernel-version', default='unknown')
+    parser.add_argument('--slot1-mtd', default='31:12',
+                        help='stock root_mtd selector that maps to slot 1 '
+                             '(TYFZA1: 31:12, PT1570: 31:11)')
+    parser.add_argument('--slot1-block', default='ubiblock0_7',
+                        help='ubiblock device of the slot-1 root volume '
+                             '(TYFZA1: ubiblock0_7, PT1570: ubiblock0_6)')
+    parser.add_argument('--slot0-block', default='ubiblock0_4',
+                        help='ubiblock device of the slot-0 root volume '
+                             '(TYFZA1: ubiblock0_4, PT1570: ubiblock0_3)')
     args = parser.parse_args()
 
     mkimage = shutil.which(args.mkimage) or args.mkimage
@@ -118,16 +127,16 @@ def main():
     (out / 'kernel.lzma').write_bytes(compress(args.image.read_bytes(), parameters['kernel']))
     (out / 'fdt.lzma').write_bytes(compress(args.dtb.read_bytes(), parameters['fdt-dts']))
     (out / 'fdt-2p5g.lzma').write_bytes(compress(args.dtb_2p5g.read_bytes(), parameters['fdt-dts']))
-    (out / 'boot.cmd').write_text('''if test "${root_mtd}" = "31:12"; then
+    (out / 'boot.cmd').write_text(f'''if test "${{root_mtd}}" = "{args.slot1_mtd}"; then
     setenv tyfza1_slot 1
     setenv tyfza1_root ubi_r1
-    setenv tyfza1_block /dev/ubiblock0_7
+    setenv tyfza1_block /dev/{args.slot1_block}
 else
     setenv tyfza1_slot 0
     setenv tyfza1_root ubi_r0
-    setenv tyfza1_block /dev/ubiblock0_4
+    setenv tyfza1_block /dev/{args.slot0_block}
 fi
-setenv bootargs "earlycon console=ttyS0,115200n8 clk_ignore_unused maxcpus=4 ubi.mtd=ubi_device ubi.block=0,${tyfza1_root} root=${tyfza1_block} rootfstype=squashfs ro tyfza1.slot=${tyfza1_slot}"
+setenv bootargs "earlycon console=ttyS0,115200n8 clk_ignore_unused maxcpus=4 ubi.mtd=ubi_device ubi.block=0,${{tyfza1_root}} root=${{tyfza1_block}} rootfstype=squashfs ro tyfza1.slot=${{tyfza1_slot}}"
 ''' + board_boot_command())
     (out / 'image.its').write_text(make_its(0x200000, 0x200000, 0x2000000,
                                            args.kernel_version,
