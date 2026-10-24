@@ -53,7 +53,7 @@ def make_its(load, entry, fdt_load, kernel_version, signed=False, board_variants
             data = /incbin/("kernel.lzma");
             type = "kernel"; arch = "arm64"; os = "linux";
             compression = "lzma"; load = <{load:#x}>; entry = <{entry:#x}>;
-            hash {{ algo = "sha256"; }};
+            hash {{ algo = "sha256"; }}
             {signature}
         }};
         fdt-dts {{
