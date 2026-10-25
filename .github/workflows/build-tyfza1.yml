@@ -107,27 +107,40 @@ jobs:
         run: |
           cp configs/tyfza1-boot.config .config
           make defconfig
-          for package in luci-app-tyfza1-pon luci-theme-argon tyfza1-pon-control tyfza1-storage \
+          for package in luci-app-tyfza1-pon luci-theme-argon tyfza1-pon-control \
             tyfza1-wifi-firmware tyfza1-pon-firmware; do
             grep -qx "CONFIG_PACKAGE_$package=y" .config || {
               echo "::error::Required package missing after defconfig: $package" >&2
               exit 1
             }
           done
-          # TARGET_ALL_PROFILES lives in the "Target Devices" menu, which only
-          # exists when TARGET_MULTI_PROFILE is on - the seed sets both.
+          # tyfza1-storage is selected through the tianyi_tyfza1 profile only:
+          # with per-device rootfs its symbol resolves to =m and the package
+          # is installed into that device's image alone.
+          grep -qxE "CONFIG_PACKAGE_tyfza1-storage=(y|m)" .config || {
+            echo "::error::tyfza1-storage missing after defconfig" >&2
+            exit 1
+          }
+          grep -q "tyfza1-storage" tmp/.targetinfo || {
+            echo "::error::tyfza1-storage missing from target profiles" >&2
+            exit 1
+          }
+          # Both boards build from one run: MULTI_PROFILE with one explicit
+          # TARGET_DEVICE selection per board (an7581-style). The per-device
+          # symbols survive defconfig, so verify them in .config directly.
           grep -qx "CONFIG_TARGET_MULTI_PROFILE=y" .config || {
             echo "::error::TARGET_MULTI_PROFILE did not survive defconfig" >&2
             exit 1
           }
-          grep -qx "CONFIG_TARGET_ALL_PROFILES=y" .config || {
-            echo "::error::TARGET_ALL_PROFILES did not survive defconfig" >&2
+          grep -qx "CONFIG_TARGET_PER_DEVICE_ROOTFS=y" .config || {
+            echo "::error::TARGET_PER_DEVICE_ROOTFS did not survive defconfig" >&2
             exit 1
           }
-          # With ALL_PROFILES the per-device Kconfig symbols are not written
-          # to .config at all - device enumeration happens through target
-          # metadata, so verify the profiles there instead.
           for device in tianyi_tyfza1 yhtc_pt1570; do
+            grep -qx "CONFIG_TARGET_DEVICE_rtl9617c_generic_DEVICE_$device=y" .config || {
+              echo "::error::Device not selected after defconfig: $device" >&2
+              exit 1
+            }
             grep -q "DEVICE_$device" tmp/.targetinfo || {
               echo "::error::Device profile missing from target metadata: $device" >&2
               exit 1
