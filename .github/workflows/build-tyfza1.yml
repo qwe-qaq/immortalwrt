@@ -58,9 +58,18 @@ jobs:
           tar -xzf artifacts/tyfza1-runtime-inputs-v1.tar.gz -C artifacts/runtime-inputs
           du -sh artifacts/runtime-inputs
 
-      - name: Install stock firmware inputs
+      - name: Bundle firmware source archives
         if: inputs.include_runtime_firmware != false
-        run: python3 scripts/tyfza1/install_runtime_inputs.py artifacts/runtime-inputs files
+        run: |
+          mkdir -p firmware-src
+          tar -czf firmware-src/tyfza1-wifi-firmware-2026-10-24.tar.gz \
+            -C artifacts/runtime-inputs lib/firmware/realtek/tyfza1
+          tar -czf firmware-src/tyfza1-pon-firmware-2026-10-24.tar.gz \
+            -C artifacts/runtime-inputs lib/firmware/realtek/rtl9617c
+          # feed the package download step from the local archives
+          mkdir -p dl
+          cp firmware-src/*.tar.gz dl/
+          sha256sum firmware-src/*.tar.gz
 
       - name: Install feeds
         run: |
@@ -98,21 +107,26 @@ jobs:
         run: |
           cp configs/tyfza1-boot.config .config
           make defconfig
-          for package in luci-app-tyfza1-pon luci-theme-argon tyfza1-pon-control tyfza1-storage; do
+          for package in luci-app-tyfza1-pon luci-theme-argon tyfza1-pon-control tyfza1-storage \
+            tyfza1-wifi-firmware tyfza1-pon-firmware; do
             grep -qx "CONFIG_PACKAGE_$package=y" .config || {
               echo "::error::Required package missing after defconfig: $package" >&2
               exit 1
             }
           done
-          # Both boards build from one run via TARGET_ALL_PROFILES: the TYFZA1
-          # pair keeps its own image/metadata/upgrade flow, the PT1570-H10
-          # adds its own. With ALL_PROFILES the per-device Kconfig symbols are
-          # not written to .config at all - device enumeration happens through
-          # target metadata, so verify the profiles there instead.
+          # TARGET_ALL_PROFILES lives in the "Target Devices" menu, which only
+          # exists when TARGET_MULTI_PROFILE is on - the seed sets both.
+          grep -qx "CONFIG_TARGET_MULTI_PROFILE=y" .config || {
+            echo "::error::TARGET_MULTI_PROFILE did not survive defconfig" >&2
+            exit 1
+          }
           grep -qx "CONFIG_TARGET_ALL_PROFILES=y" .config || {
             echo "::error::TARGET_ALL_PROFILES did not survive defconfig" >&2
             exit 1
           }
+          # With ALL_PROFILES the per-device Kconfig symbols are not written
+          # to .config at all - device enumeration happens through target
+          # metadata, so verify the profiles there instead.
           for device in tianyi_tyfza1 yhtc_pt1570; do
             grep -q "DEVICE_$device" tmp/.targetinfo || {
               echo "::error::Device profile missing from target metadata: $device" >&2
