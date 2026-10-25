@@ -106,11 +106,16 @@ jobs:
           done
           # Both boards build from one run via TARGET_ALL_PROFILES: the TYFZA1
           # pair keeps its own image/metadata/upgrade flow, the PT1570-H10
-          # adds its own. The device choice symbols are mutually exclusive in
-          # .config, so the seed enables ALL_PROFILES instead of picking one.
+          # adds its own. With ALL_PROFILES the per-device Kconfig symbols are
+          # not written to .config at all - device enumeration happens through
+          # target metadata, so verify the profiles there instead.
+          grep -qx "CONFIG_TARGET_ALL_PROFILES=y" .config || {
+            echo "::error::TARGET_ALL_PROFILES did not survive defconfig" >&2
+            exit 1
+          }
           for device in tianyi_tyfza1 yhtc_pt1570; do
-            grep -qx "CONFIG_TARGET_rtl9617c_generic_DEVICE_$device=y" .config || {
-              echo "::error::Required device missing after defconfig: $device" >&2
+            grep -q "DEVICE_$device" tmp/.targetinfo || {
+              echo "::error::Device profile missing from target metadata: $device" >&2
               exit 1
             }
           done
