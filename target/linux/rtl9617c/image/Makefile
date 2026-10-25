@@ -61,8 +61,8 @@ define Device/tianyi_tyfza1
   DEVICE_DTS := rtl9617c-tyfza1 rtl9617c-tyfza1-2p5g
   DEVICE_DTS_DIR := ../dts
   IMAGE_METADATA := "tyfza1_storage": "factory-v1"
-  DEVICE_PACKAGES := kmod-rtl-ax-ap tyfza1-pon-control tyfza1-wifi-firmware tyfza1-pon-firmware \
-	luci-app-tyfza1-pon \
+  DEVICE_PACKAGES := kmod-rtl-ax-ap tyfza1-pon-control tyfza1-storage \
+	tyfza1-wifi-firmware tyfza1-pon-firmware luci-app-tyfza1-pon \
 	ubi-utils nand-utils uboot-envtools iw wpad-mbedtls wifi-scripts wireless-regdb \
 	kmod-gpio-button-hotplug kmod-usb3 kmod-usb-storage kmod-usb-storage-uas \
 	kmod-usb-ledtrig-usbport kmod-tyfza1-usb-led block-mount kmod-fs-vfat kmod-fs-exfat \
