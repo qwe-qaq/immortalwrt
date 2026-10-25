@@ -28,10 +28,14 @@ step "Build firmware source archives"). To publish by hand:
 
 ```sh
 tar -xzf tyfza1-runtime-inputs-v1.tar.gz -C inputs
+# Version numbers must not contain '-': apk reserves it as the
+# version/revision separator, so use dotted dates and matching tags
+# (v2026.10.24 in PKG_SOURCE_URL).
+ver=$(date +%Y.%m.%d)
 # wifi: everything under lib/firmware/realtek/tyfza1
-tar -czf tyfza1-wifi-firmware-$(date +%F).tar.gz -C inputs lib/firmware/realtek/tyfza1
+tar -czf "tyfza1-wifi-firmware-$ver.tar.gz" -C inputs lib/firmware/realtek/tyfza1
 # pon: the six SerDes images under lib/firmware/realtek/rtl9617c
-tar -czf tyfza1-pon-firmware-$(date +%F).tar.gz -C inputs lib/firmware/realtek/rtl9617c
+tar -czf "tyfza1-pon-firmware-$ver.tar.gz" -C inputs lib/firmware/realtek/rtl9617c
 ```
 
 Upload both as release assets of the firmware repository, matching the

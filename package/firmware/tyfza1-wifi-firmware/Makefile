@@ -13,7 +13,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tyfza1-wifi-firmware
-PKG_VERSION:=2026-10-24
+# Dots only: apk rejects package versions containing '-' (reserved as the
+# version/revision separator), so date versions must not use %Y-%m-%d.
+PKG_VERSION:=2026.10.24
 PKG_RELEASE:=1
 PKG_LICENSE:=Proprietary
 

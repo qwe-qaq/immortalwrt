@@ -62,9 +62,17 @@ jobs:
         if: inputs.include_runtime_firmware != false
         run: |
           mkdir -p firmware-src
-          tar -czf firmware-src/tyfza1-wifi-firmware-2026-10-24.tar.gz \
+          # Name the archives after PKG_VERSION so the package download step
+          # finds them; the version must stay hyphen-free (apk restriction).
+          fwver=$(sed -n 's/^PKG_VERSION:=//p' package/firmware/tyfza1-wifi-firmware/Makefile)
+          ponver=$(sed -n 's/^PKG_VERSION:=//p' package/firmware/tyfza1-pon-firmware/Makefile)
+          [ "$fwver" = "$ponver" ] || {
+            echo "::error::firmware package versions differ: $fwver vs $ponver" >&2
+            exit 1
+          }
+          tar -czf "firmware-src/tyfza1-wifi-firmware-$fwver.tar.gz" \
             -C artifacts/runtime-inputs lib/firmware/realtek/tyfza1
-          tar -czf firmware-src/tyfza1-pon-firmware-2026-10-24.tar.gz \
+          tar -czf "firmware-src/tyfza1-pon-firmware-$ponver.tar.gz" \
             -C artifacts/runtime-inputs lib/firmware/realtek/rtl9617c
           # feed the package download step from the local archives
           mkdir -p dl
