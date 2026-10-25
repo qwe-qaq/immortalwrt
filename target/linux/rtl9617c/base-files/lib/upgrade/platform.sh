@@ -3,6 +3,10 @@
 REQUIRE_IMAGE_METADATA=1
 RAMFS_COPY_BIN='fw_printenv fw_setenv fwtool jsonfilter'
 RAMFS_COPY_DATA='/etc/fw_env.config'
+# TYFZA1 upgrades re-seed rootfs_data from the factory-v1 overlay seed;
+# the file only exists on images that ship tyfza1-storage.
+[ -f /usr/share/tyfza1/overlay-seed.ubifs.gz ] && \
+	RAMFS_COPY_DATA="$RAMFS_COPY_DATA /usr/share/tyfza1/overlay-seed.ubifs.gz"
 CI_UBIPART=ubi_device
 . /lib/upgrade/tyfza1-storage.sh
 
@@ -76,12 +80,26 @@ nand_upgrade_prepare_ubi() {
 	local ubidev=$(nand_find_ubi "$CI_UBIPART")
 	local rootvol=$(nand_find_volume "$ubidev" "$CI_ROOTPART")
 	local datavol=$(nand_find_volume "$ubidev" rootfs_data)
+	local seed=/tmp/tyfza1-overlay-seed.ubifs
+	local reseed=0
+	case "$(board_name)" in
+		yhtc,pt1570*) ;;
+		# TYFZA1 upgrades restore the factory-v1 rootfs_data layout from the
+		# overlay seed shipped by tyfza1-storage; the PT1570 has no seed.
+		*) gzip -dc /usr/share/tyfza1/overlay-seed.ubifs.gz > "$seed" || return 1
+		   reseed=1 ;;
+	esac
 	nand_remove_ubiblock "$rootvol" || return 1
 	[ -z "$datavol" ] || ubirmvol "/dev/$ubidev" -N rootfs_data || return 1
 	# Clear the old image before shrinking, including on static UBI volumes.
 	ubiupdatevol "/dev/$rootvol" -t || return 1
 	tyfza1_resize_root "$ubidev" "$rootvol" || return 1
-	tyfza1_grow_data "$ubidev"
+	tyfza1_grow_data "$ubidev" || return 1
+	if [ "$reseed" = 1 ]; then
+		# Match first migration's growth limit, compression and usable capacity.
+		ubiupdatevol "/dev/${ubidev}_11" "$seed" || return 1
+		rm -f "$seed"
+	fi
 }
 
 platform_do_upgrade() {
