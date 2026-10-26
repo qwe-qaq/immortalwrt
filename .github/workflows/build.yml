@@ -1,4 +1,4 @@
-name: Build TYFZA1 firmware
+name: Build  firmware
 
 on:
   workflow_dispatch:
@@ -174,12 +174,23 @@ jobs:
 
       - name: Collect artifacts
         run: |
+          set -euo pipefail
           mkdir -p artifacts/firmware
           find bin/targets/rtl9617c/generic -maxdepth 1 -type f \
             -exec cp {} artifacts/firmware/ \;
           cp .config artifacts/firmware/config.seed
-          (cd artifacts/firmware && sha256sum * > SHA256SUMS)
+
+          # sanity: 至少要有一个 sysupgrade 镜像，否则立刻失败并列出目录
+          compgen -G 'artifacts/firmware/*sysupgrade*.bin' >/dev/null || {
+            echo "::error::没有收集到任何 sysupgrade 镜像" >&2
+            ls -lh bin/targets/rtl9617c/generic || true
+            exit 1
+          }
+
+          # 校验文件只对固件本体生成，避免把 SHA256SUMS 自己算进去
+          (cd artifacts/firmware && sha256sum *sysupgrade*.bin *kernel.itb *.manifest > SHA256SUMS)
           ls -lh artifacts/firmware
+          cat artifacts/firmware/SHA256SUMS
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -189,13 +200,40 @@ jobs:
           retention-days: 30
 
       - name: Publish release
-        if: inputs.release_tag != ''
+        if: inputs.release_tag != '' || startsWith(github.ref, 'refs/tags/')
+        env:
+          # push tag 触发时 inputs.release_tag 为空，用 ref_name 兜底
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
-          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" --title "$RELEASE_TAG" --draft
+          set -euo pipefail
+          # 空 tag 会让 gh 创建出 untagged-<sha> 这样的野 release，直接拒掉
+          : "${RELEASE_TAG:?RELEASE_TAG 为空，拒绝发布}"
+          : "${GITHUB_REPOSITORY:?}"
+
+          # 两块板子各一个 sysupgrade，按真实文件名全部收集
+          IMAGES=()
+          while IFS= read -r f; do IMAGES+=("$f"); done < <(
+            find artifacts/firmware -maxdepth 1 -type f -name '*sysupgrade*.bin' | sort
+          )
+          if [ "${#IMAGES[@]}" -eq 0 ]; then
+            echo "::error::artifacts/firmware 下没有 sysupgrade 镜像" >&2
+            ls -l artifacts/firmware
+            exit 1
           fi
+          printf '将上传 %d 个镜像:\n' "${#IMAGES[@]}"
+          printf '  %s\n' "${IMAGES[@]}"
+
+          [ -f artifacts/firmware/SHA256SUMS ] || {
+            echo "::error::缺少 artifacts/firmware/SHA256SUMS" >&2
+            exit 1
+          }
+
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+                 --target "$GITHUB_SHA" --title "$RELEASE_TAG" --draft
+
           gh release upload "$RELEASE_TAG" \
-            artifacts/firmware/sysupgrade.bin artifacts/firmware/SHA256SUMS \
+            "${IMAGES[@]}" artifacts/firmware/SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" --clobber
+
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
